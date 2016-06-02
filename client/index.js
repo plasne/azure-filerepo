@@ -130,7 +130,7 @@ function upload() {
             $.ajax({
                 type: "POST",
                 url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd,
-                data: evt.target.result.match(/,(.*)$/)[1],
+                data: reader.result.match(/,(.*)$/)[1],
                 success: function() {
                     switch (cmd) {
                         case "complete":

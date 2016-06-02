@@ -73,6 +73,11 @@ app.get("/hello", function(req, res) {
    res.send("hello"); 
 });
 
+// home page
+app.get("/", function(req, res) {
+    res.redirect("/index.htm");
+});
+
 // upload all or part of a file
 app.post("/upload", function(req, res) {
     if (req.query.container && req.query.name && req.query.cmd) {
