@@ -151,16 +151,20 @@ function upload() {
                     retrySince = null;
                 },
                 error: function(xhr, status, error) {
-                    if (!retrySince) retrySince = new Date();
-                    var elapsed = (new Date().getTime() - retrySince.getTime());
-                    if (elapsed < retrySince) {
-                        file.status = Math.round(cursor / parts * 100) + "%, retrying since " + retrySince.toLocaleTimeString();
-                        renderLocal();
-                        setTimeout(uploadBlock, 5000); // retry after 5 sec
+                    if (status == "timeout") {
+                        if (!retrySince) retrySince = new Date();
+                        var elapsed = (new Date().getTime() - retrySince.getTime());
+                        if (elapsed < retrySince) {
+                            file.status = Math.round(cursor / parts * 100) + "%, retrying since " + retrySince.toLocaleTimeString();
+                            renderLocal();
+                            setTimeout(uploadBlock, 5000); // retry after 5 sec
+                        } else {
+                            file.status = "Aborted."
+                            renderLocal();
+                            $("#status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
+                        }
                     } else {
-                        file.status = "Aborted."
-                        renderLocal();
-                        $("#status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
+                        $("#status").text("There was an error uploading " + file.name + " - " + error);
                     }
                 }
             });
