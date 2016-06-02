@@ -127,6 +127,8 @@ function upload() {
         
         // after each block is read, transfer it to the server
         var uploadBlock = function() {
+            var kb = cursor * blockSize / 1000;
+            var sec = (new Date().getTime() - started.getTime()) / 1000;
             $.ajax({
                 type: "POST",
                 url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd,
@@ -141,8 +143,6 @@ function upload() {
                             renderServer();
                             break;
                         default:
-                            var kb = cursor * blockSize / 1000;
-                            var sec = (new Date().getTime() - started.getTime()) / 1000;
                             file.status = Math.round(cursor / parts * 100) + "%, " + Math.round(kb / sec) + " KB/sec";
                             renderLocal();
                             read();
@@ -154,6 +154,8 @@ function upload() {
                     if (!retrySince) retrySince = new Date();
                     var elapsed = (new Date().getTime() - retrySince.getTime());
                     if (elapsed < retrySince) {
+                        file.status = Math.round(cursor / parts * 100) + "%, retrying since " + retrySince.getHours() + ":" + retrySince.GetMinutes();
+                        renderLocal();
                         setTimeout(uploadBlock, 5000); // retry after 5 sec
                     } else {
                         file.status = "Aborted."
