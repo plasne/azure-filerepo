@@ -154,7 +154,7 @@ function upload() {
                     if (!retrySince) retrySince = new Date();
                     var elapsed = (new Date().getTime() - retrySince.getTime());
                     if (elapsed < retrySince) {
-                        file.status = Math.round(cursor / parts * 100) + "%, retrying since " + retrySince.getHours() + ":" + retrySince.GetMinutes();
+                        file.status = Math.round(cursor / parts * 100) + "%, retrying since " + retrySince.toLocaleTimeString();
                         renderLocal();
                         setTimeout(uploadBlock, 5000); // retry after 5 sec
                     } else {
