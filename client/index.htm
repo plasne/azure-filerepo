@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <script
+			  src="https://code.jquery.com/jquery-2.2.4.min.js"
+			  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+			  crossorigin="anonymous"></script>
+        <script type="text/javascript" src="index.js"></script>
+        <link rel="stylesheet" type="text/css" href="index.css" />
+    </head>
+    <body>
+        <div id="interface">
+            <div>
+                <div id="file-drop" class="file-drop no-hover" ondragenter="dragged(event);" ondragover="return false;" ondragleave="undragged(event);" ondrop="dropped(event);">
+                    Drop files here
+                </div>
+                <input id="file-browser" type="file" multiple onchange="selected(event);" />
+            </div>
+            <div>
+                <div style="float : left">
+                    <table id="files-local" style="margin-top : 16px">
+                        <tr class="header1">
+                            <td colspan="3">Local</td>
+                        </tr>
+                        <tr class="header2">
+                            <td>Filename</td>
+                            <td>Size</td>
+                            <td>Status</td>
+                        </tr>
+                    </table>
+                    <button id="upload" style="display : none" onclick="upload();">upload</button>
+                </div>
+                <div style="float : left ; margin-left : 50px">
+                    <table id="files-server" style="margin-top : 16px">
+                        <tr class="header1">
+                            <td colspan="3">Server</td>
+                        </tr>
+                        <tr class="header2">
+                            <td>Filename</td>
+                            <td>Size</td>
+                            <td>Uploaded</td>
+                        </tr>
+                    </table>
+                    <button id="upload" style="display : none" onclick="upload();">upload</button>
+                </div>
+                <div style="clear : both"></div>
+            </div>
+        </div>
+        <div id="status"></div>
+    </body>
+</html>

@@ -1,0 +1,30 @@
+.file-drop {
+    width : 300px;
+    height : 160px;
+    padding-top : 140px;
+    text-align : center;
+    margin-bottom : 8px;
+}
+
+.no-hover {
+    border : solid 4px gray;
+}
+
+.hover {
+    border : solid 4px black;
+}
+
+.header1 {
+    background-color : #222299;
+    color : white;
+}
+
+.header2 {
+    background-color : #4444FF;
+    color : white;
+}
+
+td {
+    min-width : 100px;
+    padding : 4px;
+}
