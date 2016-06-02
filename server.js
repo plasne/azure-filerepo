@@ -81,7 +81,7 @@ app.get("/", function(req, res) {
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
-    if (req.query.container && req.query.name && req.query.cmd && req.query.sequence) {
+    if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
         var file = pending.find(req.query.container, req.query.name);
         var decoder = base64.decode();
         switch(req.query.cmd) {
@@ -106,27 +106,29 @@ app.post("/upload", function(req, res) {
                 }
                 break;
             case "continue":
-                if (file.sequence == sequence) {
+                if (file.sequence == req.query.seq) {
                     req.pipe(decoder).pipe(file.writer, { end: false });
                     file.sequence++;
                     res.status(200).end();
                 } else {
-                    res.status(500).send("expected sequence " + file.sequence + " but received " + sequence + ".");
+                    res.status(500).send("expected sequence " + file.sequence + " but received " + req.query.seq + ".");
                 }
                 break;
             case "end":
-                if (file.sequence == sequence) {
+                if (file.sequence == req.query.seq) {
                     req.pipe(decoder).pipe(file.writer);
                     pending.remove(req.query.container, req.query.name);
                     res.status(200).end();
                 } else {
-                    res.status(500).send("expected sequence " + file.sequence + " but received " + sequence + ".");
+                    res.status(500).send("expected sequence " + file.sequence + " but received " + req.query.seq + ".");
                 }
                 break;
             case "abort":
                 pending.remove(req.query.container, req.query.name);
                 res.status(200).end();
         }
+    } else {
+        res.status(500).send("you must include all query string parameters.");
     }
 });
 

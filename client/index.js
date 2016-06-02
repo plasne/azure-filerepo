@@ -93,8 +93,9 @@ function selected(e) {
 
 function upload() {
 
-    // transfer each file one at a time
-    $(filesLocal).each(function(i, file) {
+    // transfer the first file
+    if (filesLocal.length > 0) {
+        var file = filesLocal[0];
         
         // transfer from the beginning of the file
         var cmd = "begin";
@@ -131,16 +132,17 @@ function upload() {
             var sec = (new Date().getTime() - started.getTime()) / 1000;
             $.ajax({
                 type: "POST",
-                url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd + "&seq=" + cursor,
+                url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1),
                 data: reader.result.match(/,(.*)$/)[1],
                 success: function() {
                     switch (cmd) {
                         case "complete":
                         case "end":
-                            filesLocal.splice(i, 1);
+                            filesLocal.splice(0, 1);
                             renderLocal();
                             filesServer.push(file);
                             renderServer();
+                            setTimeout(upload, 200); // upload the next file
                             break;
                         default:
                             file.status = Math.round(cursor / parts * 100) + "%, " + Math.round(kb / sec) + " KB/sec";
@@ -164,7 +166,7 @@ function upload() {
                             $("#status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
                         }
                     } else {
-                        $("#status").text("There was an error uploading " + file.name + " - " + error);
+                        $("#status").text("There was an error uploading " + file.name + " - " + xhr.responseText);
                     }
                 }
             });
@@ -185,7 +187,7 @@ function upload() {
         // read the first block
         read();
 
-    });
+    }
 
 }
 
