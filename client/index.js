@@ -131,7 +131,7 @@ function upload() {
             var sec = (new Date().getTime() - started.getTime()) / 1000;
             $.ajax({
                 type: "POST",
-                url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd,
+                url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd + "&seq=" + cursor,
                 data: reader.result.match(/,(.*)$/)[1],
                 success: function() {
                     switch (cmd) {

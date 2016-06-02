@@ -43,6 +43,7 @@ var pending = {
         var file = {
            container: container,
            name: name,
+           sequence: 0,
            writer: writer
         };
         
@@ -80,7 +81,7 @@ app.get("/", function(req, res) {
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
-    if (req.query.container && req.query.name && req.query.cmd) {
+    if (req.query.container && req.query.name && req.query.cmd && req.query.sequence) {
         var file = pending.find(req.query.container, req.query.name);
         var decoder = base64.decode();
         switch(req.query.cmd) {
@@ -98,19 +99,29 @@ app.post("/upload", function(req, res) {
                 if (!file) {
                     file = pending.add(req.query.container, req.query.name);
                     req.pipe(decoder).pipe(file.writer, { end: false });
+                    file.sequence++;
                     res.status(200).end();
                 } else {
                     res.status(500).send("the file already exists.");
                 }
                 break;
             case "continue":
-                req.pipe(decoder).pipe(file.writer, { end: false });
-                res.status(200).end();
+                if (file.sequence == sequence) {
+                    req.pipe(decoder).pipe(file.writer, { end: false });
+                    file.sequence++;
+                    res.status(200).end();
+                } else {
+                    res.status(500).send("expected sequence " + file.sequence + " but received " + sequence + ".");
+                }
                 break;
             case "end":
-                req.pipe(decoder).pipe(file.writer);
-                pending.remove(req.query.container, req.query.name);
-                res.status(200).end();
+                if (file.sequence == sequence) {
+                    req.pipe(decoder).pipe(file.writer);
+                    pending.remove(req.query.container, req.query.name);
+                    res.status(200).end();
+                } else {
+                    res.status(500).send("expected sequence " + file.sequence + " but received " + sequence + ".");
+                }
                 break;
             case "abort":
                 pending.remove(req.query.container, req.query.name);
