@@ -39,7 +39,6 @@ var pending = {
             console.log("finished"); 
         });
 
-        
         var file = {
            container: container,
            name: name,

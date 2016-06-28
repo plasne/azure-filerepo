@@ -1,6 +1,6 @@
 
 var blockSize = 200000; // in bytes
-var retryFor = 10 * 60 * 1000 // in ms, current is 10 min
+var retryFor = 30 * 60 * 1000 // in ms, current is 30 min
 var filesLocal = [];
 var filesServer = [];
 
@@ -153,7 +153,7 @@ function upload() {
                     retrySince = null;
                 },
                 error: function(xhr, status, error) {
-                    if (status == "timeout") {
+                    //if (status == "timeout") {
                         if (!retrySince) retrySince = new Date();
                         var elapsed = (new Date().getTime() - retrySince.getTime());
                         if (elapsed < retrySince) {
@@ -165,9 +165,9 @@ function upload() {
                             renderLocal();
                             $("#status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
                         }
-                    } else {
-                        $("#status").text("There was an error uploading " + file.name + " - " + xhr.responseText);
-                    }
+                    //} else {
+                        //$("#status").text("There was an error uploading " + file.name + " - " + xhr.responseText);
+                    //}
                 }
             });
         }
