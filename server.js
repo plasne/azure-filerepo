@@ -3,6 +3,7 @@
 // implement starting a file that was started before
 // implement checking for an existing file in the container
 // implement logging
+// implement configuration file
 
 var q = require("q");
 var express = require("express");
@@ -61,7 +62,9 @@ var pending = {
                 // see if the blob already exists
                 service.getBlob(container, name, function(error, blob) {
                     if (!error) { // file exists
+                        console.log("exists");
                         if (replace) {
+                            console.log("delete");
                             service.deleteBlob(container, name, function(error) {
                                 if (!error) {
                                      // file exists, but can be replaced
@@ -77,6 +80,7 @@ var pending = {
                         }
                     } else {
                         // file doesn't exist so create
+                        console.log("doesn't exist");
                         deferred.resolve(open());
                     }
                 });
