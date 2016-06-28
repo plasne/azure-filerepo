@@ -109,6 +109,9 @@ app.post("/upload", function(req, res) {
                     req.pipe(decoder).pipe(file.writer, { end: false });
                     file.sequence++;
                     res.status(200).end();
+                } else if (req.query.seq < file.sequence) {
+                    // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
+                    res.status(200).end();
                 } else {
                     res.status(500).send("expected sequence " + file.sequence + " but received " + req.query.seq + ".");
                 }
@@ -117,6 +120,9 @@ app.post("/upload", function(req, res) {
                 if (file.sequence == req.query.seq) {
                     req.pipe(decoder).pipe(file.writer);
                     pending.remove(req.query.container, req.query.name);
+                    res.status(200).end();
+                } else if (req.query.seq < file.sequence) {
+                    // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
                     res.status(200).end();
                 } else {
                     res.status(500).send("expected sequence " + file.sequence + " but received " + req.query.seq + ".");
