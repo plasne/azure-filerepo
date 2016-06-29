@@ -191,15 +191,16 @@ app.post("/upload", function(req, res) {
             case "begin":
 //res.status(502).end();
 
-var deferred = q.defer();
-deferred.promise.then(function() {
-    console.log("success");
-    res.status(501).end();
-}, function(msg) {
+//var deferred = q.defer();
+//deferred.promise.then(function() {
+//    console.log("success");
+//    res.status(501).end();
+//}, function(msg) {
+    var msg = "forced";
     console.log("fail - " + msg);
     res.status(502).end();
-});
-deferred.reject("test exception");
+//});
+//deferred.reject("test exception");
 
 
 if (1==3) {
