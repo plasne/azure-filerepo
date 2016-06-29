@@ -210,4 +210,11 @@ $(document).ready(function() {
         $("#status").text("You will need to use a fully HTML5 compatible browser.");
     }
 
+    $("#file-hello").click(function() {
+        $.ajax({
+            type: "GET",
+            url: "/hello"
+        });
+    });
+
 });
