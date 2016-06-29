@@ -23,6 +23,7 @@ var pending = {
     add: function(container, name, overwrite) {
         var deferred = q.defer();
 
+if (1 == 3) {
         // connect and create the container        
         var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
         service.createContainerIfNotExists(container, function(error, result, response) {
@@ -58,6 +59,7 @@ var pending = {
                     return file;
 
                 }
+}
 
 deferred.reject("exists");
 if (1==3) {
@@ -98,6 +100,7 @@ console.log("deleted");
 
             } else {
 // create container doesn't work
+console.log("container exists? error");
             }
         });
 
