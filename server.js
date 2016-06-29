@@ -62,7 +62,6 @@ var pending = {
                 // see if the blob already exists
                 service.doesBlobExist(container, name, function(error, result, response) {
                     if (!error) { // file exists
-console.log(result);
                         if (result.exists) {
                             console.log("exists");
                             if (replace) {
@@ -132,16 +131,16 @@ app.get("/", function(req, res) {
 express.response.sendError = function(error) {
     switch(error) {
         case "malformed":
-            this.status(500).send("The request sent to the server was malformed. Plrease refresh your browser and try again or contact the system administrator.");
+            this.status(500).send({ code: 100, msg: "The request sent to the server was malformed. Plrease refresh your browser and try again or contact the system administrator." });
             break;
         case "exists":
             this.status(500).send({ code: 200, msg: "The file already exists, please flag to overwrite the existing file or upload with a different filename." });
             break;
         case "locked":
-            this.status(500).send("The file already exists and is locked, please upload with a different filename.");
+            this.status(500).send({ code: 300, msg: "The file already exists and is locked, please upload with a different filename." });
             break;
         case "out-of-sync":
-            this.status(500).send("The upload packets were not in the expected order. Please refresh your browser and select the file for upload again.");
+            this.status(500).send({ code: 400, msg: "The upload packets were not in the expected order. Please refresh your browser and select the file for upload again." });
             break;
     }
 }
