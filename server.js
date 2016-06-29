@@ -189,8 +189,8 @@ app.post("/upload", function(req, res) {
                 break;
 
             case "begin":
-res.status(502).end();
-if (1==3) {
+//res.status(502).end();
+if (1==1) {
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
