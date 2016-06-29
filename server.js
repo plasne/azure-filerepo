@@ -54,7 +54,7 @@ var pending = {
                         console.log("finished"); 
                     });
 
-                    this.list.push(file);
+                    pending.list.push(file);
                     return file;
 
                 }
