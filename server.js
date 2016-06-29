@@ -232,6 +232,7 @@ app.post("/upload", function(req, res) {
     } else {
         res.sendError("malformed");
     }
+    console.log("done");
 });
 
 // start the server
