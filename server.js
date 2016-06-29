@@ -31,14 +31,6 @@ var pending = {
                 // create a function to handle the operations
                 var open = function() {
 
-                    // create a reference for the file
-                    var file = {
-                        container: container,
-                        name: name,
-                        sequence: 0,
-                        writer: writer
-                    };
-
                     // create a writable block blob
                     var writer = service.createWriteStreamToBlockBlob(container, name, function(error, result, response) {
                         if (!error) {
@@ -53,6 +45,14 @@ var pending = {
                     writer.on("finish", function() {
                         console.log("finished"); 
                     });
+
+                    // create a reference for the file
+                    var file = {
+                        container: container,
+                        name: name,
+                        sequence: 0,
+                        writer: writer
+                    };
 
                     pending.list.push(file);
                     return file;
@@ -180,15 +180,19 @@ app.post("/upload", function(req, res) {
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name).then(function(file) {
-                        console.log("01 begin");
+console.log("first");
+console.log(file);
                         req.pipe(decoder).pipe(file.writer, { end: false });
                         file.sequence++;
+console.log("1 - 01");
                         res.status(200).end();
+console.log("1 - 02");
                     }, function(error) {
-                        console.log("02 begin");
+console.log("second");
                         res.sendError(error);
                     });
                 } else {
+console.log("third");
                     // resume the in-progress upload (implicit continue)
                     res.status(500).send("implement continue!!!");
                 }
