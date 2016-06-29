@@ -148,6 +148,7 @@ express.response.sendError = function(error) {
 // upload all or part of a file
 app.post("/upload", function(req, res) {
     if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
+        var overwrite = (req.query.overwrite == "true");
         var file = pending.find(req.query.container, req.query.name);
         var decoder = base64.decode();
         switch(req.query.cmd) {
@@ -155,7 +156,7 @@ app.post("/upload", function(req, res) {
             case "complete":
                 if (!file) {
                     // upload the file
-                    pending.add(req.query.container, req.query.name).then(function(file) {
+                    pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
                         req.pipe(decoder).pipe(file.writer);
                         pending.remove(req.query.container, req.query.name);
                         res.status(200).end();
@@ -179,7 +180,7 @@ app.post("/upload", function(req, res) {
             case "begin":
                 if (!file) {
                     // upload the file
-                    pending.add(req.query.container, req.query.name).then(function(file) {
+                    pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
                         req.pipe(decoder).pipe(file.writer, { end: false });
                         file.sequence++;
                         res.status(200).end();

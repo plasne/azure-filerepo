@@ -130,9 +130,10 @@ function upload() {
         var uploadBlock = function() {
             var kb = cursor * blockSize / 1000;
             var sec = (new Date().getTime() - started.getTime()) / 1000;
+            var overwrite = $("#file-overwrite").is(":checked");
             $.ajax({
                 type: "POST",
-                url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1),
+                url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite,
                 data: reader.result.match(/,(.*)$/)[1],
                 success: function() {
                     switch (cmd) {

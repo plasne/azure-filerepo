@@ -13,7 +13,13 @@
                 <div id="file-drop" class="file-drop no-hover" ondragenter="dragged(event);" ondragover="return false;" ondragleave="undragged(event);" ondrop="dropped(event);">
                     Drop files here
                 </div>
-                <input id="file-browser" type="file" multiple onchange="selected(event);" />
+                <div>
+                    <input id="file-browser" type="file" multiple onchange="selected(event);" />
+                </div>
+                <div class="file-overwrite">
+                    <input id="file-overwrite" type="checkbox" />
+                    <span>Overwrite if exists?</span>
+                </div>
             </div>
             <div>
                 <div style="float : left">
@@ -45,6 +51,6 @@
                 <div style="clear : both"></div>
             </div>
         </div>
-        <div id="status"></div>
+        <div id="status" style="margin-top : 16px"></div>
     </body>
 </html>
