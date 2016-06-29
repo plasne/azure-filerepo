@@ -153,21 +153,30 @@ function upload() {
                     retrySince = null;
                 },
                 error: function(xhr, status, error) {
-                    //if (status == "timeout") {
-                        if (!retrySince) retrySince = new Date();
-                        var elapsed = (new Date().getTime() - retrySince.getTime());
-                        if (elapsed < retrySince) {
-                            file.status = Math.round(cursor / parts * 100) + "%, retrying since " + retrySince.toLocaleTimeString();
+                    var response = xhr.responseJSON;
+                    switch (response.code) {
+                        case 100:
+                        case 200:
+                        case 300:
+                        case 400:
+                            file.status = "Aborted.";
                             renderLocal();
-                            setTimeout(uploadBlock, 5000); // retry after 5 sec
-                        } else {
-                            file.status = "Aborted."
-                            renderLocal();
-                            $("#status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
-                        }
-                    //} else {
-                        //$("#status").text("There was an error uploading " + file.name + " - " + xhr.responseText);
-                    //}
+                            $("#status").text(response.msg);
+                            break;
+                        default:
+                            if (!retrySince) retrySince = new Date();
+                            var elapsed = (new Date().getTime() - retrySince.getTime());
+                            if (elapsed < retrySince) {
+                                file.status = Math.round(cursor / parts * 100) + "%, retrying since " + retrySince.toLocaleTimeString();
+                                renderLocal();
+                                setTimeout(uploadBlock, 5000); // retry after 5 sec
+                            } else {
+                                file.status = "Aborted."
+                                renderLocal();
+                                $("#status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
+                            }
+                            break;
+                    }
                 }
             });
         }
