@@ -135,7 +135,7 @@ express.response.sendError = function(error) {
             this.status(500).send("The request sent to the server was malformed. Plrease refresh your browser and try again or contact the system administrator.");
             break;
         case "exists":
-            this.status(500).send("The file already exists, please flag to overwrite the existing file or upload with a different filename.");
+            this.status(500).send({ code: 200, msg: "The file already exists, please flag to overwrite the existing file or upload with a different filename." });
             break;
         case "locked":
             this.status(500).send("The file already exists and is locked, please upload with a different filename.");
