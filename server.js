@@ -20,7 +20,7 @@ app.use(express.static("client"));
 var pending = {
     list: [],
     
-    add: function(container, name, replace) {
+    add: function(container, name, overwrite) {
         var deferred = q.defer();
 
         // connect and create the container        
@@ -64,11 +64,12 @@ var pending = {
                     if (!error) { // file exists
                         if (result.exists) {
                             console.log("exists");
-                            if (replace) {
+                            if (overwrite) {
                                 console.log("delete");
                                 service.deleteBlob(container, name, function(error) {
                                     if (!error) {
                                         // file exists, but can be replaced
+console.log("deleted");
                                         deferred.resolve(open());
                                     } else {
                                         console.log("couldn't delete blob");
@@ -147,10 +148,15 @@ express.response.sendError = function(error) {
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
+console.log("0");
     if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
+console.log("1");
         var overwrite = (req.query.overwrite == "true");
+console.log("2");
         var file = pending.find(req.query.container, req.query.name);
+console.log("3");
         var decoder = base64.decode();
+console.log("4");
         switch(req.query.cmd) {
 
             case "complete":
@@ -172,12 +178,14 @@ app.post("/upload", function(req, res) {
                         pending.remove(req.query.container, req.query.name);
                         res.status(200).end();
                     }, function(error) {
+                        pending.remove(req.query.container, req.query.name);
                         res.sendError(error);
                     });
                 }
                 break;
 
             case "begin":
+console.log("begin");
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
@@ -185,6 +193,7 @@ app.post("/upload", function(req, res) {
                         file.sequence++;
                         res.status(200).end();
                     }, function(error) {
+                        pending.remove(req.query.container, req.query.name);
                         res.sendError(error);
                     });
                 } else {
