@@ -187,9 +187,12 @@ app.post("/upload", function(req, res) {
                         req.pipe(decoder).pipe(file.writer, { end: false });
                         file.sequence++;
                         res.status(200).end();
+                        console.log("flush");
                     }, function(error) {
                         pending.remove(req.query.container, req.query.name);
-                        res.sendError(error);
+                        res.status(501).end();
+                        //res.sendError(error);
+                        console.log("flush");
                     });
                 } else {
                     // resume the in-progress upload (implicit continue)
