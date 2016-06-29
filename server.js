@@ -60,8 +60,9 @@ var pending = {
                 }
 
                 // see if the blob already exists
-                service.doesBlobExist(container, name, function(error, blob) {
+                service.doesBlobExist(container, name, function(error, result, response) {
                     if (!error) { // file exists
+console.log(result);
                         if (result.exists) {
                             console.log("exists");
                             if (replace) {
@@ -180,19 +181,13 @@ app.post("/upload", function(req, res) {
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name).then(function(file) {
-console.log("first");
-console.log(file);
                         req.pipe(decoder).pipe(file.writer, { end: false });
                         file.sequence++;
-console.log("1 - 01");
                         res.status(200).end();
-console.log("1 - 02");
                     }, function(error) {
-console.log("second");
                         res.sendError(error);
                     });
                 } else {
-console.log("third");
                     // resume the in-progress upload (implicit continue)
                     res.status(500).send("implement continue!!!");
                 }
