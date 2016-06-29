@@ -59,7 +59,9 @@ var pending = {
 
                 }
 
-                // see if the blob already exists
+deferred.reject("exists");
+if (1==3) {
+               // see if the blob already exists
                 service.doesBlobExist(container, name, function(error, result, response) {
                     if (!error) { // file exists
                         if (result.exists) {
@@ -92,10 +94,12 @@ console.log("deleted");
                     }
                 });
 
+}
+
             } else {
 // create container doesn't work
             }
-        })
+        });
 
         return deferred.promise;
     },
