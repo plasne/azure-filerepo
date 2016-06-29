@@ -190,7 +190,18 @@ app.post("/upload", function(req, res) {
 
             case "begin":
 //res.status(502).end();
-if (1==1) {
+
+var deferred = q.defer();
+deferred.reject("test exception");
+deferred.then(function() {
+    console.log("success");
+    res.status(501).end();
+}, function(msg) {
+    console.log("fail - " + msg);
+    res.status(502).end();
+});
+
+if (1==3) {
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
