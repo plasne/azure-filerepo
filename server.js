@@ -189,6 +189,8 @@ app.post("/upload", function(req, res) {
                 break;
 
             case "begin":
+res.status(502).end();
+if (1==3) {
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
@@ -206,6 +208,7 @@ app.post("/upload", function(req, res) {
                     // resume the in-progress upload (implicit continue)
                     res.status(500).send("implement continue!!!");
                 }
+}
                 break;
 
             case "continue":
