@@ -148,15 +148,12 @@ express.response.sendError = function(error) {
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
-console.log("0");
+    res.status(500).send("message is this.");
+    if (1==3) {
     if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
-console.log("1");
         var overwrite = (req.query.overwrite == "true");
-console.log("2");
         var file = pending.find(req.query.container, req.query.name);
-console.log("3");
         var decoder = base64.decode();
-console.log("4");
         switch(req.query.cmd) {
 
             case "complete":
@@ -185,7 +182,6 @@ console.log("4");
                 break;
 
             case "begin":
-console.log("begin");
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
@@ -236,6 +232,7 @@ console.log("begin");
         }
     } else {
         res.sendError("malformed");
+    }
     }
 });
 
