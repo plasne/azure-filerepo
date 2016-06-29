@@ -25,7 +25,7 @@ var pending = {
 
         // connect and create the container        
         var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
-        service.createContainerIfNotExists(container, { }, function(error, result, response) {
+        service.createContainerIfNotExists(container, function(error, result, response) {
             if (!error) {
 
                 // create a function to handle the operations
@@ -92,11 +92,11 @@ var pending = {
                 });
 
             } else {
-
+// create container doesn't work
             }
         })
 
-        return deferred;
+        return deferred.promise;
     },
 
     remove: function(container, name) {
