@@ -199,7 +199,7 @@ deferred.promise.then(function() {
 //    var msg = "forced";
     console.log("fail - " + msg);
     res.status(502).end();
-});
+}).done();
 deferred.reject("test exception");
 
 
