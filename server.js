@@ -180,10 +180,12 @@ app.post("/upload", function(req, res) {
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name).then(function(file) {
+                        console.log("01 begin");
                         req.pipe(decoder).pipe(file.writer, { end: false });
                         file.sequence++;
                         res.status(200).end();
                     }, function(error) {
+                        console.log("02 begin");
                         res.sendError(error);
                     });
                 } else {
