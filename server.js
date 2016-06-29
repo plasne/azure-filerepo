@@ -193,7 +193,7 @@ app.post("/upload", function(req, res) {
 
 var deferred = q.defer();
 deferred.reject("test exception");
-deferred.then(function() {
+deferred.promise.then(function() {
     console.log("success");
     res.status(501).end();
 }, function(msg) {
