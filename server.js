@@ -60,28 +60,34 @@ var pending = {
                 }
 
                 // see if the blob already exists
-                service.getBlob(container, name, function(error, blob) {
+                service.doesBlobExist(container, name, function(error, blob) {
                     if (!error) { // file exists
-                        console.log("exists");
-                        if (replace) {
-                            console.log("delete");
-                            service.deleteBlob(container, name, function(error) {
-                                if (!error) {
-                                     // file exists, but can be replaced
-                                    deferred.resolve(open());
-                                } else {
-                                    console.log("couldn't delete blob");
-                                    deferred.reject("locked");
-                                }
-                            });
+                        if (result.exists) {
+                            console.log("exists");
+                            if (replace) {
+                                console.log("delete");
+                                service.deleteBlob(container, name, function(error) {
+                                    if (!error) {
+                                        // file exists, but can be replaced
+                                        deferred.resolve(open());
+                                    } else {
+                                        console.log("couldn't delete blob");
+                                        deferred.reject("locked");
+                                    }
+                                });
+                            } else {
+                                console.log("already exists");
+                                deferred.reject("exists");
+                            }
                         } else {
-                            console.log("already exists");
-                            deferred.reject("exists");
+                            // file doesn't exist so create
+                            console.log("doesn't exist");
+                            deferred.resolve(open());
                         }
                     } else {
                         // file doesn't exist so create
-                        console.log("doesn't exist");
-                        deferred.resolve(open());
+                        console.log(error);
+                        deferred.reject("exception");
                     }
                 });
 
