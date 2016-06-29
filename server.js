@@ -192,7 +192,6 @@ app.post("/upload", function(req, res) {
 //res.status(502).end();
 
 var deferred = q.defer();
-deferred.reject("test exception");
 deferred.promise.then(function() {
     console.log("success");
     res.status(501).end();
@@ -200,6 +199,8 @@ deferred.promise.then(function() {
     console.log("fail - " + msg);
     res.status(502).end();
 });
+deferred.reject("test exception");
+
 
 if (1==3) {
                 if (!file) {
