@@ -148,8 +148,7 @@ express.response.sendError = function(error) {
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
-    res.status(500).send("message is this.");
-    if (1==3) {
+    console.log("upload");
     if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
         var overwrite = (req.query.overwrite == "true");
         var file = pending.find(req.query.container, req.query.name);
@@ -232,7 +231,6 @@ app.post("/upload", function(req, res) {
         }
     } else {
         res.sendError("malformed");
-    }
     }
 });
 
