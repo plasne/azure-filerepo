@@ -5,7 +5,8 @@
 // implement logging
 // implement configuration file
 
-var q = require("q");
+//var q = require("q");
+var promise = require("bluebird");
 var express = require("express");
 var bodyParser = require("body-parser");
 var wasb = require("azure-storage");
@@ -21,86 +22,71 @@ var pending = {
     list: [],
     
     add: function(container, name, overwrite) {
-        var deferred = q.defer();
 
-        // connect and create the container        
+        // connect to Azure Storage        
         var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
-        service.createContainerIfNotExists(container, function(error, result, response) {
-            if (!error) {
 
-                // create a function to handle the operations
-                var open = function() {
-
-                    // create a writable block blob
-                    var writer = service.createWriteStreamToBlockBlob(container, name, function(error, result, response) {
-                        if (!error) {
-                            console.log("transferred");
-                        } else {
-                            console.log("failed - " + error);
-                        }
-                    });
-                    writer.on("close", function() {
-                        console.log("close");
-                    });
-                    writer.on("finish", function() {
-                        console.log("finished"); 
-                    });
-
-                    // create a reference for the file
-                    var file = {
-                        container: container,
-                        name: name,
-                        sequence: 0,
-                        writer: writer
-                    };
-
-                    pending.list.push(file);
-                    return file;
-
+        // use or create the container
+        var ensureContainer = new promise(function(resolve, reject) {
+            service.createContainerIfNotExists(container, function(error, result, response) {
+                if (error) {
+                    console.log("createContainerIfNotExists: " + error);
+                    reject("container?");
+                } else {
+                    resolve(result);
                 }
-
-               // see if the blob already exists
-                service.doesBlobExist(container, name, function(error, result, response) {
-                    if (!error) { // file exists
-                        if (result.exists) {
-                            console.log("exists");
-                            if (overwrite) {
-                                console.log("delete");
-                                service.deleteBlob(container, name, function(error) {
-                                    if (!error) {
-                                        // file exists, but can be replaced
-console.log("deleted");
-                                        deferred.resolve(open());
-                                    } else {
-                                        console.log("couldn't delete blob");
-                                        deferred.reject("locked");
-                                    }
-                                });
-                            } else {
-                                console.log("already exists");
-                                deferred.reject("exists");
-                            }
-                        } else {
-                            // file doesn't exist so create
-                            console.log("doesn't exist");
-                            deferred.resolve(open());
-                        }
-                    } else {
-                        // file doesn't exist so create
-                        console.log(error);
-                        deferred.reject("exception");
-                    }
-                });
-
-
-            } else {
-// create container doesn't work
-console.log("container exists? error");
-deferred.reject("container");
-            }
+            });
         });
 
-        return deferred.promise;
+        // check to see if the blob already exists
+        var canWriteFile = new promise(function(resolve, reject) {
+            service.doesBlobExist(container, name, function(error, result, response) {
+                if (error) {
+                    console.log("doesBlobExist: " + error);
+                    reject("exists?");
+                } else {
+                    if (!result.exists || overwrite) {
+                        resolve();
+                    } else {
+                        reject("exists");
+                    }
+                }
+            });
+        });
+
+        // process those actions
+        return ensureContainer.then(function() {
+            return canWriteFile.then(function() {
+
+                // create a writable block blob
+                var writer = service.createWriteStreamToBlockBlob(container, name, function(error, result, response) {
+                    if (!error) {
+                        console.log("transferred");
+                    } else {
+                        console.log("failed - " + error);
+                    }
+                });
+                writer.on("close", function() {
+                    console.log("close");
+                });
+                writer.on("finish", function() {
+                    console.log("finished"); 
+                });
+
+                // create a reference for the file
+                var file = {
+                    container: container,
+                    name: name,
+                    sequence: 0,
+                    writer: writer
+                };
+
+                pending.list.push(file);
+                return file;
+
+            });
+        });
+
     },
 
     remove: function(container, name) {
@@ -197,12 +183,12 @@ app.post("/upload", function(req, res) {
                             req.pipe(decoder).pipe(file.writer, { end: false });
                             file.sequence++;
                             res.status(200).end();
-                            console.log("flush");
+                            console.log("flush - success");
                         }, function(error) {
                             pending.remove(req.query.container, req.query.name);
                             res.status(501).end();
                             //res.sendError(error);
-                            console.log("flush");
+                            console.log("flush - fail");
                         }).done();
                     } else {
                         // resume the in-progress upload (implicit continue)
@@ -253,7 +239,12 @@ app.post("/upload", function(req, res) {
 });
 
 // start the server
-var port = process.env.port || 80;
+var port = process.env.port || 3000;
 app.listen(port, function() {
    console.log("listening on port " + port + "..."); 
+});
+
+process.on('unhandledRejection', function(reason, p){
+    console.log("Possibly Unhandled Rejection at: Promise ", p, " reason: ", reason);
+    // application specific logging here
 });
