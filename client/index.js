@@ -156,6 +156,7 @@ function upload() {
                 error: function(xhr, status, error) {
                     var response = xhr.responseJSON;
                     switch (response.code) {
+                        case 000:
                         case 100:
                         case 200:
                         case 300:
