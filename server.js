@@ -31,7 +31,7 @@ var pending = {
             service.createContainerIfNotExists(container, function(error, result, response) {
                 if (error) {
                     console.log("createContainerIfNotExists: " + error);
-                    reject("container?");
+                    reject(Error("container?"));
                 } else {
                     resolve(result);
                 }
@@ -40,51 +40,60 @@ var pending = {
 
         // check to see if the blob already exists
         var canWriteFile = new promise(function(resolve, reject) {
-            service.doesBlobExist(container, name, function(error, result, response) {
-                if (error) {
-                    console.log("doesBlobExist: " + error);
-                    reject("exists?");
-                } else {
-                    if (!result.exists || overwrite) {
-                        resolve("hello");
+            try {
+                service.doesBlobExist(container, name, function(error, result, response) {
+                    if (error) {
+                        console.log("doesBlobExist: " + error);
+                        reject(Error("exists?"));
                     } else {
-                        reject("exists");
+                        if (!result.exists || overwrite) {
+                            resolve(result);
+                        } else {
+                            reject("exists");
+                        }
                     }
-                }
-            });
+                });
+                console.log("complete!!!");
+            } catch (ex) {
+console.log ("super ex: " + ex);
+            }
         });
 
-        // process those actions
-        return ensureContainer.then(function() {
-            return canWriteFile.then(function() {
+        var begin = new promise(function(resolve, reject) {
 
-                // create a writable block blob
-                var writer = service.createWriteStreamToBlockBlob(container, name, function(error, result, response) {
-                    if (!error) {
-                        console.log("transferred");
-                    } else {
-                        console.log("failed - " + error);
-                    }
-                });
-                writer.on("close", function() {
-                    console.log("close");
-                });
-                writer.on("finish", function() {
-                    console.log("finished"); 
-                });
-
-                // create a reference for the file
-                var file = {
-                    container: container,
-                    name: name,
-                    sequence: 0,
-                    writer: writer
-                };
-
-                pending.list.push(file);
-                return file;
-
+            // create a writable block blob
+            var writer = service.createWriteStreamToBlockBlob(container, name, function(error, result, response) {
+                if (!error) {
+                    console.log("transferred");
+                } else {
+                    console.log("failed - " + error);
+                }
             });
+            writer.on("close", function() {
+                console.log("close");
+            });
+            writer.on("finish", function() {
+                console.log("finished"); 
+            });
+
+            // create a reference for the file
+            var file = {
+                container: container,
+                name: name,
+                sequence: 0,
+                writer: writer
+            };
+
+            pending.list.push(file);
+            resolve(file);
+
+        });
+
+        // process those actions in serial
+        return promise.each([ensureContainer, canWriteFile, begin], function(result) { }).then(function(results) {
+            return results[2];
+        }, function(error) {
+            return promise.reject(error);
         });
 
     },
@@ -119,6 +128,7 @@ app.get("/", function(req, res) {
 
 // extend the response object to include the custom error messages
 express.response.sendError = function(error) {
+    console.log("error: " + JSON.stringify(error));
     switch(error) {
         case "exception":
             this.status(500).send({ code: 000, msg: "The application raised an exception. Please refresh your browser and try again later or contact the system administrator." });
@@ -137,6 +147,9 @@ express.response.sendError = function(error) {
             break;
         case "container":
             this.status(500).send({ code: 500, msg: "The container was unaccessible, please try again later." });
+            break;
+        default:
+            this.status(500).send({ code: 999, msg: "Unknown error." });
             break;
     }
 }
@@ -180,17 +193,19 @@ app.post("/upload", function(req, res) {
                     if (!file) {
                         // upload the file
                         pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
+                            console.log("loc 01");
+                            console.log(file);
                             req.pipe(decoder).pipe(file.writer, { end: false });
                             file.sequence++;
                             res.status(200).end();
-                            console.log("flush - success");
                         }, function(error) {
+                            console.log("loc 02");
                             pending.remove(req.query.container, req.query.name);
-                            res.status(501).end();
-                            //res.sendError(error);
-                            console.log("flush - fail");
+                            res.sendError(error);
                         }).catch(function(e) {
+                            console.log("loc 03");
                             console.log("exception - " + e);
+                            res.status(500).end();
                         });
                     } else {
                         // resume the in-progress upload (implicit continue)
@@ -241,10 +256,15 @@ app.post("/upload", function(req, res) {
 });
 
 // start the server
-var port = process.env.port || 80;
+var port = process.env.port || 3000;
 app.listen(port, function() {
    console.log("listening on port " + port + "..."); 
 });
+
+//promise.onPossiblyUnhandledRejection(function(error){
+//    console.log("error: " + error);
+//    throw error;
+//});
 
 process.on('unhandledRejection', function(reason, p){
     console.log("Possibly Unhandled Rejection at: Promise ", p, " reason: ", reason);
