@@ -96,6 +96,7 @@ console.log("deleted");
             } else {
 // create container doesn't work
 console.log("container exists? error");
+deferred.reject("container");
             }
         });
 
@@ -133,8 +134,11 @@ app.get("/", function(req, res) {
 // extend the response object to include the custom error messages
 express.response.sendError = function(error) {
     switch(error) {
+        case "exception":
+            this.status(500).send({ code: 000, msg: "The application raised an exception. Please refresh your browser and try again later or contact the system administrator." });
+            break;
         case "malformed":
-            this.status(500).send({ code: 100, msg: "The request sent to the server was malformed. Plrease refresh your browser and try again or contact the system administrator." });
+            this.status(500).send({ code: 100, msg: "The request sent to the server was malformed. Please refresh your browser and try again or contact the system administrator." });
             break;
         case "exists":
             this.status(500).send({ code: 200, msg: "The file already exists, please flag to overwrite the existing file or upload with a different filename." });
@@ -145,99 +149,107 @@ express.response.sendError = function(error) {
         case "out-of-sync":
             this.status(500).send({ code: 400, msg: "The upload packets were not in the expected order. Please refresh your browser and select the file for upload again." });
             break;
+        case "container":
+            this.status(500).send({ code: 500, msg: "The container was unaccessible, please try again later." });
+            break;
     }
 }
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
-    console.log("upload");
-    if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
-        var overwrite = (req.query.overwrite == "true");
-        var file = pending.find(req.query.container, req.query.name);
-        var decoder = base64.decode();
-        switch(req.query.cmd) {
+    try {
+        console.log("upload");
+        if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
+            var overwrite = (req.query.overwrite == "true");
+            var file = pending.find(req.query.container, req.query.name);
+            var decoder = base64.decode();
+            switch(req.query.cmd) {
 
-            case "complete":
-                if (!file) {
-                    // upload the file
-                    pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
-                        req.pipe(decoder).pipe(file.writer);
+                case "complete":
+                    if (!file) {
+                        // upload the file
+                        pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
+                            req.pipe(decoder).pipe(file.writer);
+                            pending.remove(req.query.container, req.query.name);
+                            res.status(200).end();
+                        }, function(error) {
+                            res.sendError(error);
+                        }).done();
+                    } else {
+                        // replace the in-progress upload (implicit replace)
+                        file.writer.end();
                         pending.remove(req.query.container, req.query.name);
-                        res.status(200).end();
-                    }, function(error) {
-                        res.sendError(error);
-                    });
-                } else {
-                    // replace the in-progress upload (implicit replace)
-                    file.writer.end();
-                    pending.remove(req.query.container, req.query.name);
-                    pending.add(req.query.container, req.query.name, true).then(function(file) {
-                        req.pipe(decoder).pipe(file.writer);
-                        pending.remove(req.query.container, req.query.name);
-                        res.status(200).end();
-                    }, function(error) {
-                        pending.remove(req.query.container, req.query.name);
-                        res.sendError(error);
-                    });
-                }
-                break;
+                        pending.add(req.query.container, req.query.name, true).then(function(file) {
+                            req.pipe(decoder).pipe(file.writer);
+                            pending.remove(req.query.container, req.query.name);
+                            res.status(200).end();
+                        }, function(error) {
+                            pending.remove(req.query.container, req.query.name);
+                            res.sendError(error);
+                        }).done();
+                    }
+                    break;
 
-            case "begin":
-                if (!file) {
-                    // upload the file
-                    pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
+                case "begin":
+                    if (!file) {
+                        // upload the file
+                        pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
+                            req.pipe(decoder).pipe(file.writer, { end: false });
+                            file.sequence++;
+                            res.status(200).end();
+                            console.log("flush");
+                        }, function(error) {
+                            pending.remove(req.query.container, req.query.name);
+                            res.status(501).end();
+                            //res.sendError(error);
+                            console.log("flush");
+                        }).done();
+                    } else {
+                        // resume the in-progress upload (implicit continue)
+                        res.status(500).send("implement continue!!!");
+                    }
+                    break;
+
+                case "continue":
+                    if (file.sequence == req.query.seq) {
                         req.pipe(decoder).pipe(file.writer, { end: false });
                         file.sequence++;
                         res.status(200).end();
-                        console.log("flush");
-                    }, function(error) {
+                    } else if (req.query.seq < file.sequence) {
+                        // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
+                        res.status(200).end();
+                    } else {
+                        res.sendError("out-of-sync");
+                    }
+                    break;
+
+                case "end":
+                    if (file.sequence == req.query.seq) {
+                        req.pipe(decoder).pipe(file.writer);
                         pending.remove(req.query.container, req.query.name);
-                        res.status(501).end();
-                        //res.sendError(error);
-                        console.log("flush");
-                    });
-                } else {
-                    // resume the in-progress upload (implicit continue)
-                    res.status(500).send("implement continue!!!");
-                }
-                break;
+                        res.status(200).end();
+                    } else if (req.query.seq < file.sequence) {
+                        // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
+                        res.status(200).end();
+                    } else {
+                        res.sendError("out-of-sync");
+                    }
+                    break;
 
-            case "continue":
-                if (file.sequence == req.query.seq) {
-                    req.pipe(decoder).pipe(file.writer, { end: false });
-                    file.sequence++;
-                    res.status(200).end();
-                } else if (req.query.seq < file.sequence) {
-                    // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
-                    res.status(200).end();
-                } else {
-                    res.sendError("out-of-sync");
-                }
-                break;
-
-            case "end":
-                if (file.sequence == req.query.seq) {
-                    req.pipe(decoder).pipe(file.writer);
+                case "abort":
                     pending.remove(req.query.container, req.query.name);
                     res.status(200).end();
-                } else if (req.query.seq < file.sequence) {
-                    // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
-                    res.status(200).end();
-                } else {
-                    res.sendError("out-of-sync");
-                }
-                break;
+                    break;
 
-            case "abort":
-                pending.remove(req.query.container, req.query.name);
-                res.status(200).end();
-                break;
-
+            }
+        } else {
+            res.sendError("malformed");
         }
-    } else {
-        res.sendError("malformed");
+        console.log("done");
+    } catch (ex) {
+        console.log("exception: " + ex);
+        res.sendError("exception");
     }
-    console.log("done");
 });
 
 // start the server
