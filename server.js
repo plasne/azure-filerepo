@@ -48,7 +48,7 @@ var pending = {
                     if (!result.exists || overwrite) {
                         resolve("hello");
                     } else {
-                        reject("ex_ists");
+                        reject("exists");
                     }
                 }
             });
@@ -160,7 +160,7 @@ app.post("/upload", function(req, res) {
                             res.status(200).end();
                         }, function(error) {
                             res.sendError(error);
-                        }).done();
+                        });
                     } else {
                         // replace the in-progress upload (implicit replace)
                         file.writer.end();
@@ -172,7 +172,7 @@ app.post("/upload", function(req, res) {
                         }, function(error) {
                             pending.remove(req.query.container, req.query.name);
                             res.sendError(error);
-                        }).done();
+                        });
                     }
                     break;
 
@@ -189,7 +189,9 @@ app.post("/upload", function(req, res) {
                             res.status(501).end();
                             //res.sendError(error);
                             console.log("flush - fail");
-                        }).done();
+                        }).catch(function(e) {
+                            console.log("exception - " + e);
+                        });
                     } else {
                         // resume the in-progress upload (implicit continue)
                         res.status(500).send("implement continue!!!");
@@ -239,7 +241,7 @@ app.post("/upload", function(req, res) {
 });
 
 // start the server
-var port = process.env.port || 3000;
+var port = process.env.port || 80;
 app.listen(port, function() {
    console.log("listening on port " + port + "..."); 
 });
