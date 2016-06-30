@@ -46,9 +46,9 @@ var pending = {
                     reject("exists?");
                 } else {
                     if (!result.exists || overwrite) {
-                        resolve();
+                        resolve("hello");
                     } else {
-                        reject("exists");
+                        reject("ex_ists");
                     }
                 }
             });
