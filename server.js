@@ -23,8 +23,6 @@ var pending = {
     add: function(container, name, overwrite) {
         var deferred = q.defer();
 
-deferred.reject("exists");
-if (1 == 3) {
         // connect and create the container        
         var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
         service.createContainerIfNotExists(container, function(error, result, response) {
@@ -61,7 +59,6 @@ if (1 == 3) {
 
                 }
 
-if (1==3) {
                // see if the blob already exists
                 service.doesBlobExist(container, name, function(error, result, response) {
                     if (!error) { // file exists
@@ -95,15 +92,12 @@ console.log("deleted");
                     }
                 });
 
-}
 
             } else {
 // create container doesn't work
 console.log("container exists? error");
             }
         });
-
-}
 
         return deferred.promise;
     },
@@ -189,21 +183,6 @@ app.post("/upload", function(req, res) {
                 break;
 
             case "begin":
-//res.status(502).end();
-
-var deferred = q.defer();
-deferred.promise.then(function() {
-    console.log("success");
-    res.status(501).end();
-}, function(msg) {
-//    var msg = "forced";
-    console.log("fail - " + msg);
-    res.status(502).end();
-}).done();
-deferred.reject("test exception");
-
-
-if (1==3) {
                 if (!file) {
                     // upload the file
                     pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
@@ -221,7 +200,6 @@ if (1==3) {
                     // resume the in-progress upload (implicit continue)
                     res.status(500).send("implement continue!!!");
                 }
-}
                 break;
 
             case "continue":
