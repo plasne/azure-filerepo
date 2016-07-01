@@ -94,12 +94,11 @@ var pending = {
     add: function(container, name, overwrite, onSuccess, onFailure) {
         var self = this;
         var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
-        //self.ensureContainer(service, container, function() {
-            onSuccess();
-            //self.canWriteFile(service, container, name, overwrite, function() {
-                //self.begin(service, container, name, onSuccess, onFailure);
-            //}, onFailure);
-        //}, onFailure);
+        self.ensureContainer(service, container, function() {
+            self.canWriteFile(service, container, name, overwrite, function() {
+                self.begin(service, container, name, onSuccess, onFailure);
+            }, onFailure);
+        }, onFailure);
     },
 
     remove: function(container, name) {
