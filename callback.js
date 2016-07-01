@@ -158,7 +158,14 @@ express.response.sendError = function(error) {
 // upload all or part of a file
 app.post("/upload", function(req, res) {
     try {
-        console.log("upload");
+
+var time = process.hrtime();
+process.nextTick(function() {
+    diff = process.hrtime(time);
+    var nano = (diff[0] * 1e9 + diff[1]) / 1e6;
+    console.log(nano);
+});
+
         if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
             var overwrite = (req.query.overwrite == "true");
             var file = pending.find(req.query.container, req.query.name);
@@ -249,7 +256,7 @@ app.post("/upload", function(req, res) {
 });
 
 // start the server
-var port = process.env.port || 3000;
+var port = process.env.port || 80;
 app.listen(port, function() {
    console.log("listening on port " + port + "..."); 
 });
