@@ -298,4 +298,4 @@ function stopProfiling(id) {
     });
 }
 
-setTimeout(startProfiling, 10 * 1000);
+//setTimeout(startProfiling, 10 * 1000);
