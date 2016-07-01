@@ -290,8 +290,10 @@ function startProfiling() {
 }
 
 function stopProfiling(id) {
+    //var path = "/Users/plasne/Documents";
+    var path = "/home/plasne"
     var profile = profiler.stopProfiling(id);
-    fs.writeFile('/Users/plasne/Documents/filerepo/' + id + '.cpuprofile', JSON.stringify(profile), function () {
+    fs.writeFile(path + '/filerepo/' + id + '.cpuprofile', JSON.stringify(profile), function () {
         console.log('Profiler data written');
     });
 }
