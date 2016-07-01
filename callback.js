@@ -124,6 +124,10 @@ app.get("/hello", function(req, res) {
    res.send("hello"); 
 });
 
+app.post("/hello", function(req, res) {
+   res.send("hello"); 
+});
+
 // home page
 app.get("/", function(req, res) {
     res.redirect("/index.htm");
