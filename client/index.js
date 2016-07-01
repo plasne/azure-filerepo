@@ -156,11 +156,12 @@ function upload() {
                 error: function(xhr, status, error) {
                     var response = xhr.responseJSON;
                     switch (response.code) {
-                        case 000:
                         case 100:
+                        case 110:
                         case 200:
                         case 300:
                         case 400:
+                        case 500:
                             file.status = "Aborted.";
                             renderLocal();
                             $("#status").text(response.msg);

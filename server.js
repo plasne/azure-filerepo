@@ -28,14 +28,19 @@ var pending = {
 
         // use or create the container
         var ensureContainer = new promise(function(resolve, reject) {
-            service.createContainerIfNotExists(container, function(error, result, response) {
-                if (error) {
-                    console.log("createContainerIfNotExists: " + error);
-                    reject(Error("container?"));
-                } else {
-                    resolve(result);
-                }
-            });
+            try {
+                service.createContainerIfNotExists(container, function(error, result, response) {
+                    if (error) {
+                        console.log("createContainerIfNotExists: " + error);
+                        reject("container?");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("createContainerIfNotExists: " + ex);
+                reject("container?");
+            }
         });
 
         // check to see if the blob already exists
@@ -44,7 +49,7 @@ var pending = {
                 service.doesBlobExist(container, name, function(error, result, response) {
                     if (error) {
                         console.log("doesBlobExist: " + error);
-                        reject(Error("exists?"));
+                        reject("exists?");
                     } else {
                         if (!result.exists || overwrite) {
                             resolve(result);
@@ -53,40 +58,38 @@ var pending = {
                         }
                     }
                 });
-                console.log("complete!!!");
             } catch (ex) {
-console.log ("super ex: " + ex);
+                console.log("doesBlobExist: " + ex);
+                reject("exists?");
             }
         });
 
         var begin = new promise(function(resolve, reject) {
+            try {
 
-            // create a writable block blob
-            var writer = service.createWriteStreamToBlockBlob(container, name, function(error, result, response) {
-                if (!error) {
-                    console.log("transferred");
-                } else {
-                    console.log("failed - " + error);
-                }
-            });
-            writer.on("close", function() {
-                console.log("close");
-            });
-            writer.on("finish", function() {
-                console.log("finished"); 
-            });
+                // create a writable block blob
+                var writer = service.createWriteStreamToBlockBlob(container, name, function(error, result, response) {
+                    if (error) {
+                        console.log("createWriteStreamToBlockBlob: " + error);
+                    }
+                });
 
-            // create a reference for the file
-            var file = {
-                container: container,
-                name: name,
-                sequence: 0,
-                writer: writer
-            };
+                // create a reference for the file
+                var file = {
+                    container: container,
+                    name: name,
+                    sequence: 0,
+                    writer: writer
+                };
 
-            pending.list.push(file);
-            resolve(file);
+                // add to pending list
+                pending.list.push(file);
+                resolve(file);
 
+            } catch (ex) {
+                console.log("createWriteStreamToBlockBlob: " + ex);
+                reject("write?");
+            }
         });
 
         // process those actions in serial
@@ -131,22 +134,21 @@ express.response.sendError = function(error) {
     console.log("error: " + JSON.stringify(error));
     switch(error) {
         case "exception":
-            this.status(500).send({ code: 000, msg: "The application raised an exception. Please refresh your browser and try again later or contact the system administrator." });
+            this.status(500).send({ code: 100, msg: "The application raised an exception. Please refresh your browser and try again later or contact the system administrator." });
             break;
         case "malformed":
-            this.status(500).send({ code: 100, msg: "The request sent to the server was malformed. Please refresh your browser and try again or contact the system administrator." });
+            this.status(500).send({ code: 110, msg: "The request sent to the server was malformed. Please refresh your browser and try again or contact the system administrator." });
+            break;
+        case "container?":
+        case "exists?":
+        case "write?":
+            this.status(500).send({ code: 200, msg: "The file repository cannot be accessed right now, please try again later." });
             break;
         case "exists":
-            this.status(500).send({ code: 200, msg: "The file already exists, please flag to overwrite the existing file or upload with a different filename." });
-            break;
-        case "locked":
-            this.status(500).send({ code: 300, msg: "The file already exists and is locked, please upload with a different filename." });
+            this.status(500).send({ code: 300, msg: "The file already exists, please flag to overwrite the existing file or upload with a different filename." });
             break;
         case "out-of-sync":
             this.status(500).send({ code: 400, msg: "The upload packets were not in the expected order. Please refresh your browser and select the file for upload again." });
-            break;
-        case "container":
-            this.status(500).send({ code: 500, msg: "The container was unaccessible, please try again later." });
             break;
         default:
             this.status(500).send({ code: 999, msg: "Unknown error." });
@@ -197,7 +199,8 @@ app.post("/upload", function(req, res) {
                     }, function(error) {
                         pending.remove(req.query.container, req.query.name);
                         res.sendError(error);
-                    }).catch(function(e) {
+                    }).catch(function(ex) {
+                        console.log(ex);
                         res.sendError("exception");
                     });
                 } else {
@@ -241,7 +244,6 @@ app.post("/upload", function(req, res) {
     } else {
         res.sendError("malformed");
     }
-    console.log("done");
 });
 
 // start the server
