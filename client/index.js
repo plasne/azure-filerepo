@@ -213,7 +213,7 @@ $(document).ready(function() {
 
     $("#file-hello").click(function() {
         $.ajax({
-            type: "POST",
+            type: "GET",
             url: "/hello"
         });
     });
