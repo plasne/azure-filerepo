@@ -18,6 +18,8 @@ var profiler = require("v8-profiler");
 var app = express();
 app.use(express.static("client"));
 
+var _service;
+
 // the current upload queue
 var pending = {
     list: [],
@@ -93,7 +95,10 @@ var pending = {
 
     add: function(container, name, overwrite, onSuccess, onFailure) {
         var self = this;
-        var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
+        if (_service == null) {
+            _service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
+        }
+        var service = _service;
         self.ensureContainer(service, container, function() {
             self.canWriteFile(service, container, name, overwrite, function() {
                 self.begin(service, container, name, onSuccess, onFailure);
