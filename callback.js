@@ -199,6 +199,7 @@ process.nextTick(function() {
                     break;
 
                 case "begin":
+                if (1==3) {
                     if (!file) {
                         // upload the file
                         pending.add(req.query.container, req.query.name, overwrite, function(file) {
@@ -212,6 +213,8 @@ process.nextTick(function() {
                         // resume the in-progress upload (implicit continue)
                         res.status(500).send("implement continue!!!");
                     }
+                }
+                res.status(501).end();
                     break;
 
                 case "continue":
