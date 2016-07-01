@@ -173,7 +173,8 @@ process.nextTick(function() {
 
         if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
             var overwrite = (req.query.overwrite == "true");
-            var file = pending.find(req.query.container, req.query.name);
+            //var file = pending.find(req.query.container, req.query.name);
+            var file = (pending.list.length > 0) ? pending.list[0] : null;
             var decoder = base64.decode();
             switch(req.query.cmd) {
 
