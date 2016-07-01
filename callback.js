@@ -203,13 +203,14 @@ process.nextTick(function() {
                     break;
 
                 case "begin":
-                if (1==3) {
+                //if (1==3) {
                     if (!file) {
                         // upload the file
                         pending.add(req.query.container, req.query.name, overwrite, function(file) {
-                            req.pipe(decoder).pipe(file.writer, { end: false });
-                            file.sequence++;
-                            res.status(200).end();
+                            //req.pipe(decoder).pipe(file.writer, { end: false });
+                            //file.sequence++;
+                            //res.status(200).end();
+                            res.status(501).end();
                         }, function(error) {
                             res.sendError(error);
                         });
@@ -217,8 +218,8 @@ process.nextTick(function() {
                         // resume the in-progress upload (implicit continue)
                         res.status(500).send("implement continue!!!");
                     }
-                }
-                res.status(501).end();
+                //}
+                //res.status(501).end();
                     break;
 
                 case "continue":
