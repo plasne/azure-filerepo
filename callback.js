@@ -13,6 +13,7 @@ var wasb = require("azure-storage");
 var fs = require("fs");
 var base64 = require("base64-stream");
 var stream = require("stream");
+var profiler = require("v8-profiler");
 
 var app = express();
 app.use(express.static("client"));
@@ -270,3 +271,29 @@ process.on('unhandledRejection', function(reason, p){
     console.log("Possibly Unhandled Rejection at: Promise ", p, " reason: ", reason);
     // application specific logging here
 });
+
+function startProfiling() {
+    var id = "profile-" + Date.now();
+
+    // Use stdout directly to bypass eventloop
+    fs.writeSync(1, 'Start profiler with Id [' + id + ']\n');
+
+    // Start profiling
+    profiler.startProfiling(id);
+
+    // Schedule stop of profiling in x seconds
+    setTimeout(function () {
+        stopProfiling(id)
+    }, 1 * 60 * 1000);
+
+    console.log("profile started");
+}
+
+function stopProfiling(id) {
+    var profile = profiler.stopProfiling(id);
+    fs.writeFile('/Users/plasne/Documents/filerepo/' + id + '.cpuprofile', JSON.stringify(profile), function () {
+        console.log('Profiler data written');
+    });
+}
+
+setTimeout(startProfiling, 10 * 1000);
