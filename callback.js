@@ -96,7 +96,7 @@ var pending = {
         var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
         self.ensureContainer(service, container, function() {
             self.canWriteFile(service, container, name, overwrite, function() {
-                self.begin(service, container, name, onSuccess, onFailure);
+                //self.begin(service, container, name, onSuccess, onFailure);
             }, onFailure);
         }, onFailure);
     },
@@ -173,8 +173,7 @@ process.nextTick(function() {
 
         if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
             var overwrite = (req.query.overwrite == "true");
-            //var file = pending.find(req.query.container, req.query.name);
-            var file = (pending.list.length > 0) ? pending.list[0] : null;
+            var file = pending.find(req.query.container, req.query.name);
             var decoder = base64.decode();
             switch(req.query.cmd) {
 
