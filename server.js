@@ -3,7 +3,6 @@
 // implement starting a file that was started before
 // implement checking for an existing file in the container
 // implement logging
-// implement configuration file
 // implement some kind of username/password/container
 
 var config = require("config");
