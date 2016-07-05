@@ -1,5 +1,5 @@
 ## Improving performance
-Depending on a variety of factors (network latency, time of day, etc.) transfer speeds appear to be somewhere between 600 MBps and 1500 MBps. I have some thoughts on how to improve performance:
+Depending on a variety of factors (network latency, time of day, etc.) transfer speeds appear to be somewhere between 600 MBps and 3000 MBps. I have some thoughts on how to improve performance:
 
 * I have not done much testing on modifying the block size (I tested with 200K), but modifying this could have an impact.
 
