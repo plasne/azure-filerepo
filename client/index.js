@@ -143,10 +143,11 @@ function upload() {
         
         // open the file on the user's disk
         var reader = new FileReader();
+        var startWithSequence = 0;
         
         // after each block is read, transfer it to the server
         var uploadBlock = function() {
-            var kb = cursor * blockSize / 1000;
+            var kb = (cursor - startWithSequence) * blockSize / 1000;
             var sec = (new Date().getTime() - started.getTime()) / 1000;
             var container = $("#file-container").val();
             var overwrite = $("#file-overwrite").is(":checked");
@@ -154,7 +155,14 @@ function upload() {
                 type: "POST",
                 url: "/upload?container=" + container + "&name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite,
                 data: reader.result.match(/,(.*)$/)[1],
-                success: function() {
+                success: function(response) {
+                    if (response) {
+                        switch (response.status) {
+                            case "resume":
+                                startWithSequence = response.sequence;
+                                break;
+                        }
+                    }
                     switch (cmd) {
                         case "complete":
                         case "end":
@@ -164,6 +172,7 @@ function upload() {
                             filesServer.unshift(file);
                             renderServer();
                             setTimeout(upload, 200); // upload the next file
+                            $("#status").text("File (" + file.name + ") was successfully uploaded.");
                             break;
                         default:
                             file.status = Math.round(cursor / parts * 100) + "%, " + Math.round(kb / sec) + " KB/sec";
@@ -204,7 +213,11 @@ function upload() {
             });
         }
         reader.onload = function(evt) {
-            uploadBlock();
+            if (cursor >= startWithSequence) {
+                uploadBlock();
+            } else {
+                read();
+            }
         }
         
         // alert if there are any read errors

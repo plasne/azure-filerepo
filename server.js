@@ -257,7 +257,10 @@ app.post("/upload", function(req, res) {
                     });
                 } else {
                     // resume the in-progress upload (implicit continue)
-                    res.status(500).send("implement continue!!!");
+                    res.status(200).send({
+                        "status": "resume",
+                        "sequence": file.sequence 
+                    });
                 }
                 break;
 
