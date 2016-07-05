@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
+  "engines": {
+    "node": "6.2.2"
+  },
   "dependencies": {
     "azure-storage": "^1.0.1",
     "base64-stream": "^0.1.3",
