@@ -174,7 +174,7 @@ function upload() {
                     retrySince = null;
                 },
                 error: function(xhr, status, error) {
-                    var response = xhr.responseJSON;
+                    var statusCode = (xhr.responseJSON) ? xhr.responseJSON.code : 0;
                     switch (response.code) {
                         case 100:
                         case 110:
@@ -184,7 +184,7 @@ function upload() {
                         case 500:
                             file.status = "Aborted.";
                             renderLocal();
-                            $("#status").text(response.msg);
+                            $("#status").text(xhr.responseJSON.msg);
                             break;
                         default:
                             if (!retrySince) retrySince = new Date();
