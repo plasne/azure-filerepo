@@ -20,9 +20,6 @@
                     <input id="file-overwrite" type="checkbox" />
                     <span>Overwrite if exists?</span>
                 </div>
-                <div>
-                    <input id="file-hello" type="button" value="hello" />
-                </div>
             </div>
             <div>
                 <div style="float : left">
@@ -36,12 +33,16 @@
                             <td>Status</td>
                         </tr>
                     </table>
-                    <button id="upload" style="display : none" onclick="upload();">upload</button>
+                    <button id="file-upload" style="display : none" onclick="upload();">upload</button>
                 </div>
                 <div style="float : left ; margin-left : 50px">
                     <table id="files-server" style="margin-top : 16px">
                         <tr class="header1">
-                            <td colspan="3">Server</td>
+                            <td colspan="3">
+                                <span>Server, container: </span>
+                                <input id="file-container" type="text" value="upload" />
+                                <input id="file-refresh" type="button" onclick="refresh();" value="Refresh" />
+                            </td>
                         </tr>
                         <tr class="header2">
                             <td>Filename</td>
@@ -49,7 +50,7 @@
                             <td>Uploaded</td>
                         </tr>
                     </table>
-                    <button id="upload" style="display : none" onclick="upload();">upload</button>
+                    <button id="file-upload" style="display : none" onclick="upload();">upload</button>
                 </div>
                 <div style="clear : both"></div>
             </div>

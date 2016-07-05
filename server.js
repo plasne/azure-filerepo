@@ -4,8 +4,9 @@
 // implement checking for an existing file in the container
 // implement logging
 // implement configuration file
+// implement some kind of username/password/container
 
-//var q = require("q");
+var config = require("config");
 var promise = require("bluebird");
 var express = require("express");
 var bodyParser = require("body-parser");
@@ -17,6 +18,9 @@ var stream = require("stream");
 var app = express();
 app.use(express.static("client"));
 
+var storageAccount = config.get("storageAccount");
+var storageKey = config.get("storageKey");
+
 // the current upload queue
 var pending = {
     list: [],
@@ -24,7 +28,7 @@ var pending = {
     add: function(container, name, overwrite) {
 
         // connect to Azure Storage        
-        var service = wasb.createBlobService("2e2115eastus", "1tnb/X2r4VZNMyKOHmM4bJfollRsF1jId2pVAhTitdmszP4MH7kc39pm97ijhHtteRY5EzuDnkIBBz8tP/2CSQ==");
+        var service = wasb.createBlobService(storageAccount, storageKey);
 
         // use or create the container
         var ensureContainer = new promise(function(resolve, reject) {
@@ -140,6 +144,7 @@ express.response.sendError = function(error) {
             this.status(500).send({ code: 110, msg: "The request sent to the server was malformed. Please refresh your browser and try again or contact the system administrator." });
             break;
         case "container?":
+        case "list?":
         case "exists?":
         case "write?":
             this.status(500).send({ code: 200, msg: "The file repository cannot be accessed right now, please try again later." });
@@ -155,6 +160,48 @@ express.response.sendError = function(error) {
             break;
     }
 }
+
+// get a list of objects in the server container
+app.get("/list", function(req, res) {
+    if (req.query.container) {
+        var service = wasb.createBlobService(storageAccount, storageKey);
+        var list = new promise(function(resolve, reject) {
+            try {
+                service.listBlobsSegmented(req.query.container, null, {
+                    maxResults: 100
+                }, function(error, result, response) {
+                    if (error) {
+                        console.log("listBlobsSegmented: " + error);
+                        reject("list?");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("listBlobsSegmented: " + ex);
+                reject("list?");
+            }
+        });
+        list.then(function(result) {
+            var response = [];
+            result.entries.forEach(function(entry) {
+                response.push({
+                    "name": entry.name,
+                    "size": entry.contentLength,
+                    "ts": entry.lastModified
+                });
+            });
+            res.status(200).send(response);
+        }, function(error) {
+            res.sendError(error);
+        }).catch(function(ex) {
+            console.log(ex);
+            res.sendError("exception");
+        });
+    } else {
+        res.sendError("malformed");
+    }
+});
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
@@ -173,6 +220,9 @@ app.post("/upload", function(req, res) {
                         res.status(200).end();
                     }, function(error) {
                         res.sendError(error);
+                    }).catch(function(ex) {
+                        console.log(ex);
+                        res.sendError("exception");
                     });
                 } else {
                     // replace the in-progress upload (implicit replace)
@@ -185,6 +235,9 @@ app.post("/upload", function(req, res) {
                     }, function(error) {
                         pending.remove(req.query.container, req.query.name);
                         res.sendError(error);
+                    }).catch(function(ex) {
+                        console.log(ex);
+                        res.sendError("exception");
                     });
                 }
                 break;
@@ -252,12 +305,7 @@ app.listen(port, function() {
    console.log("listening on port " + port + "..."); 
 });
 
-//promise.onPossiblyUnhandledRejection(function(error){
-//    console.log("error: " + error);
-//    throw error;
-//});
-
-process.on('unhandledRejection', function(reason, p){
+// alert on unhandled rejections
+process.on("unhandledRejection", function(reason, p) {
     console.log("Possibly Unhandled Rejection at: Promise ", p, " reason: ", reason);
-    // application specific logging here
 });

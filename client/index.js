@@ -43,9 +43,9 @@ function renderLocal() {
 
     // show or hide the upload button
     if (filesLocal.length > 0) {
-        $("#upload").show();
+        $("#file-upload").show();
     } else {
-        $("#upload").hide();
+        $("#file-upload").hide();
     }
     
 }
@@ -61,7 +61,7 @@ function renderServer() {
         var tr = $("<tr></tr>").appendTo(table);
         $("<td></td>").appendTo(tr).text(file.name);
         $("<td></td>").appendTo(tr).text(fileSize(file.size));
-        $("<td></td>").appendTo(tr).text("?");
+        $("<td></td>").appendTo(tr).text(file.ts);
     });
 
 }
@@ -89,6 +89,24 @@ function selected(e) {
         if (!existsInList(file.name)) filesLocal.push(file);
     });
     renderLocal();
+}
+
+function refresh() {
+    var container = $("#file-container").val();
+    $.ajax({
+        type: "GET",
+        url: "/list?container=" + container,
+        success: function(entries) {
+            filesServer = entries;
+            renderServer();
+        },
+        error: function(xhr, status, error) {
+            filesServer = [];
+            renderServer();
+            $("#status").text("Could not get a list of files from the server.");
+        }
+    });
+
 }
 
 function upload() {
@@ -130,10 +148,11 @@ function upload() {
         var uploadBlock = function() {
             var kb = cursor * blockSize / 1000;
             var sec = (new Date().getTime() - started.getTime()) / 1000;
+            var container = $("#file-container").val();
             var overwrite = $("#file-overwrite").is(":checked");
             $.ajax({
                 type: "POST",
-                url: "/upload?container=upload&name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite,
+                url: "/upload?container=" + container + "&name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite,
                 data: reader.result.match(/,(.*)$/)[1],
                 success: function() {
                     switch (cmd) {
@@ -141,7 +160,8 @@ function upload() {
                         case "end":
                             filesLocal.splice(0, 1);
                             renderLocal();
-                            filesServer.push(file);
+                            file.ts = "now";
+                            filesServer.unshift(file);
                             renderServer();
                             setTimeout(upload, 200); // upload the next file
                             break;
@@ -190,10 +210,6 @@ function upload() {
         // alert if there are any read errors
         reader.onerror = function(evt) {
             $("#status").text("There was an error reading the file. Please make sure the file is not locked.");
-            $.ajax({
-                type: "POST",
-                url: "/upload?container=upload&name=" + file.name + "&cmd=abort"
-            });
         }
         
         // read the first block
@@ -208,15 +224,12 @@ $(document).ready(function() {
     // ensure the browser is HTML5
     if (window.File && window.FileReader && window.FileList && window.Blob) {
         $("#interface").show();
+
+        // refresh (to show server files)
+        refresh();
+
     } else {
         $("#status").text("You will need to use a fully HTML5 compatible browser.");
     }
-
-    $("#file-hello").click(function() {
-        $.ajax({
-            type: "GET",
-            url: "/hello"
-        });
-    });
 
 });
