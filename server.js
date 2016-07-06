@@ -11,6 +11,7 @@ var crypto = require("crypto");
 var qs = require("querystring");
 var promise = require("bluebird");
 var express = require("express");
+var cookieParser = require("cookie-parser");
 var bodyParser = require("body-parser");
 var wasb = require("azure-storage");
 var fs = require("fs");
@@ -20,6 +21,7 @@ var AuthenticationContext = require("adal-node").AuthenticationContext;
 var nJwt = require("njwt");
 
 var app = express();
+app.use(cookieParser());
 app.use(express.static("client"));
 
 // get the configuration

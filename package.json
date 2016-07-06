@@ -13,6 +13,7 @@
     "bluebird": "^3.4.1",
     "body-parser": "^1.15.1",
     "config": "^1.21.0",
+    "cookie-parser": "^1.4.3",
     "crypto": "0.0.3",
     "express": "^4.13.4",
     "njwt": "^0.3.1",
