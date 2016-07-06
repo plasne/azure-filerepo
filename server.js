@@ -204,7 +204,7 @@ app.get("/token", function(req, res) {
       
       // obtain an access token
       var authenticationContext = new AuthenticationContext(authority);
-      authenticationContext.acquireTokenWithAuthorizationCode(code, redirectUri, resource, clientId, clientSecret, function(err, response) {
+      authenticationContext.acquireTokenWithAuthorizationCode(req.query.code, redirectUri, resource, clientId, clientSecret, function(err, response) {
           if (!err) {
 
             // build the claims
