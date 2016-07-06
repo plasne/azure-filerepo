@@ -222,7 +222,7 @@ app.get("/token", function(req, res) {
             res.cookie("accessToken", jwt.compact(), {
                 maxAge: 4 * 60 * 60 * 1000 // 4 hours
             });
-            res.redirect("/index.html");
+            res.redirect("/index.htm");
 
           } else {
               console.log("token: an authorization token could not be obtained - " + err);
