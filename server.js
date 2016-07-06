@@ -1,11 +1,14 @@
 
 // notes:
-// implement starting a file that was started before
-// implement checking for an existing file in the container
-// implement logging
+// implement trimming the pending entries after inactivity
+// implement download
+// implement delete
 // implement some kind of username/password/container
+// implement logging
 
 var config = require("config");
+var crypto = require("crypto");
+var qs = require("querystring");
 var promise = require("bluebird");
 var express = require("express");
 var bodyParser = require("body-parser");
@@ -13,10 +16,20 @@ var wasb = require("azure-storage");
 var fs = require("fs");
 var base64 = require("base64-stream");
 var stream = require("stream");
+var AuthenticationContext = require("adal-node").AuthenticationContext;
+var nJwt = require("njwt");
 
 var app = express();
 app.use(express.static("client"));
 
+// get the configuration
+var clientId = config.get("clientId");
+var clientSecret = config.get("clientSecret");
+var authority = config.get("authority");
+var redirectUri = config.get("redirectUri");
+//var resource = config.get("resource");
+var resource = "";
+var jwtKey = config.get("jwtKey");
 var storageAccount = config.get("storageAccount");
 var storageKey = config.get("storageKey");
 
@@ -142,6 +155,9 @@ express.response.sendError = function(error) {
         case "malformed":
             this.status(500).send({ code: 110, msg: "The request sent to the server was malformed. Please refresh your browser and try again or contact the system administrator." });
             break;
+        case "auth":
+            this.status(401).send({ code: 120, msg: "You are not properly authorized to view this page." });
+            break;
         case "container?":
         case "list?":
         case "exists?":
@@ -159,6 +175,62 @@ express.response.sendError = function(error) {
             break;
     }
 }
+
+// a login with user consent (if the admin has already consented there is no additional consent required)
+app.get("/login", function(req, res) {
+    crypto.randomBytes(48, function(err, buf) {
+    if (err) {
+        console.log("login: couldn't generate the crypto token.");
+        res.sendError("exception");
+    } else {
+        var token = buf.toString("base64").replace(/\//g, "_").replace(/\+/g, "-");
+        res.cookie("authstate", token);
+        var url = authority + "/oauth2/authorize?response_type=code&client_id=" + qs.escape(clientId) + "&redirect_uri=" + qs.escape(redirectUri) + "&state=" + qs.escape(token) + "&resource=" + qs.escape(resource);
+        res.redirect(url);
+    }
+  });
+});
+
+// get an authorization token
+app.get("/token", function(req, res) {
+
+    // ensure this is all part of the same authorization chain
+    if (req.cookies.authstate !== req.query.state) {
+        console.log("token: the state token did not match.");
+        res.sendError("auth");
+    } else {
+      
+      // obtain an access token
+      var authenticationContext = new AuthenticationContext(authority);
+      authenticationContext.acquireTokenWithAuthorizationCode(code, redirectUri, resource, clientId, clientSecret, function(err, response) {
+          if (!err) {
+
+            // build the claims
+            var claims = {
+                iss: "http://testauth.plasne.com",
+                sub: response.userId,
+                scope: "admin"
+            };
+
+            // build the JWT
+            var jwt = nJwt.create(claims, jwtKey);
+            jwt.setExpiration(new Date().getTime() + (4 * 60 * 60 * 1000)); // 4 hours
+
+            // return the JWT
+            res.cookie("accessToken", jwt.compact(), {
+                maxAge: 4 * 60 * 60 * 1000 // 4 hours
+            });
+            res.redirect("/index.html");
+
+          } else {
+              console.log("token: an authorization token could not be obtained - " + err);
+              res.sendError("auth");
+          }
+      });
+
+    }
+
+});
 
 // get a list of objects in the server container
 app.get("/list", function(req, res) {

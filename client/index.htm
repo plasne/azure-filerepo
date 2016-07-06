@@ -8,7 +8,34 @@
         <link rel="stylesheet" type="text/css" href="index.css" />
     </head>
     <body>
-        <div id="interface">
+        <div id="file-login">
+            <div>
+                <div>
+                    <a href="/login">Login as an administrator</a>
+                </div>
+            </div>
+            <div style="margin-top : 32px">
+                <div>Login as a customer</div>
+                <table>
+                    <tr>
+                        <td>Username:</td>
+                        <td>
+                            <input id="file-username" type="text" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Password:</td>
+                        <td>
+                            <input id="file-password" type="text" />
+                        </td>
+                    </tr>
+                </table>
+                <div>
+                    <input id="file-login" type="button" value="Login" />
+                </div>
+            </div>
+        </div>
+        <div id="file-interface" style="display : none">
             <div>
                 <div id="file-drop" class="file-drop no-hover" ondragenter="dragged(event);" ondragover="return false;" ondragleave="undragged(event);" ondrop="dropped(event);">
                     Drop files here
@@ -55,6 +82,6 @@
                 <div style="clear : both"></div>
             </div>
         </div>
-        <div id="status" style="margin-top : 16px"></div>
+        <div id="file-status" style="margin-top : 16px"></div>
     </body>
 </html>

@@ -103,7 +103,7 @@ function refresh() {
         error: function(xhr, status, error) {
             filesServer = [];
             renderServer();
-            $("#status").text("Could not get a list of files from the server.");
+            $("#file-status").text("Could not get a list of files from the server.");
         }
     });
 
@@ -172,7 +172,7 @@ function upload() {
                             filesServer.unshift(file);
                             renderServer();
                             setTimeout(upload, 200); // upload the next file
-                            $("#status").text("File (" + file.name + ") was successfully uploaded.");
+                            $("#file-status").text("File (" + file.name + ") was successfully uploaded.");
                             break;
                         default:
                             file.status = Math.round(cursor / parts * 100) + "%, " + Math.round(kb / sec) + " KB/sec";
@@ -193,7 +193,7 @@ function upload() {
                         case 500:
                             file.status = "Aborted.";
                             renderLocal();
-                            $("#status").text(xhr.responseJSON.msg);
+                            $("#file-status").text(xhr.responseJSON.msg);
                             break;
                         default:
                             if (!retrySince) retrySince = new Date();
@@ -205,7 +205,7 @@ function upload() {
                             } else {
                                 file.status = "Aborted."
                                 renderLocal();
-                                $("#status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
+                                $("#file-status").text("There was an error uploading " + file.name + ", even after multiple retries. Please try again later.");
                             }
                             break;
                     }
@@ -222,7 +222,7 @@ function upload() {
         
         // alert if there are any read errors
         reader.onerror = function(evt) {
-            $("#status").text("There was an error reading the file. Please make sure the file is not locked.");
+            $("#file-status").text("There was an error reading the file. Please make sure the file is not locked.");
         }
         
         // read the first block
@@ -236,13 +236,20 @@ $(document).ready(function() {
     
     // ensure the browser is HTML5
     if (window.File && window.FileReader && window.FileList && window.Blob) {
-        $("#interface").show();
 
-        // refresh (to show server files)
-        refresh();
+        // check for a login
+        if (document.cookie.indexOf("accessToken") > -1) {
+
+            // show the file interface
+            $("#file-interface").show();
+
+            // refresh (to show server files)
+            refresh();
+
+        }
 
     } else {
-        $("#status").text("You will need to use a fully HTML5 compatible browser.");
+        $("#file-status").text("You will need to use a fully HTML5 compatible browser.");
     }
 
 });
