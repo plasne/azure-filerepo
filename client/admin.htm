@@ -1,0 +1,55 @@
+<html>
+    <head>
+        <script
+			  src="https://code.jquery.com/jquery-2.2.4.min.js"
+			  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+			  crossorigin="anonymous"></script>
+        <script type="text/javascript" src="admin.js"></script>
+        <link rel="stylesheet" type="text/css" href="admin.css" />
+    </head>
+    <body>
+        <div id="file-interface" style="display : none">
+            <div>
+                <div>Create a new account</div>
+                <table>
+                    <tr>
+                        <td>Username:</td>
+                        <td>
+                            <input id="file-username" type="text" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Password:</td>
+                        <td>
+                            <input id="file-password" type="text" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Container:</td>
+                        <td>
+                            <input id="file-container" type="text" />
+                        </td>
+                    </tr>
+                </table>
+                <div>
+                    <input id="file-create" type="button" style="margin-left : 140px" onclick="create();" value="Create" />
+                </div>
+            </div>
+            <div style="margin-top : 16px">
+                <div>Accounts:</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <td>Username</td>
+                            <td>Password</td>
+                            <td>Container</td>
+                        </tr>
+                    </thead>
+                    <tbody id="file-account-list">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="file-status" style="margin-top : 16px"></div>
+    </body>
+</html>

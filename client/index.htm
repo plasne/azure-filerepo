@@ -11,7 +11,7 @@
         <div id="file-login">
             <div>
                 <div>
-                    <a href="/login">Login as an administrator</a>
+                    <a href="/login/admin">Login as an administrator</a>
                 </div>
             </div>
             <div style="margin-top : 32px">
@@ -26,12 +26,12 @@
                     <tr>
                         <td>Password:</td>
                         <td>
-                            <input id="file-password" type="text" />
+                            <input id="file-password" type="password" />
                         </td>
                     </tr>
                 </table>
                 <div>
-                    <input id="file-login" type="button" value="Login" />
+                    <input id="file-login" type="button" onclick="login();" value="Login" />
                 </div>
             </div>
         </div>
@@ -66,8 +66,7 @@
                     <table id="files-server" style="margin-top : 16px">
                         <tr class="header1">
                             <td colspan="3">
-                                <span>Server, container: </span>
-                                <input id="file-container" type="text" value="upload" />
+                                <span>Server</span>
                                 <input id="file-refresh" type="button" onclick="refresh();" value="Refresh" />
                             </td>
                         </tr>

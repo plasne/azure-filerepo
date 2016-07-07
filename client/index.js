@@ -59,7 +59,11 @@ function renderServer() {
     });
     $(filesServer).each(function(i, file) {
         var tr = $("<tr></tr>").appendTo(table);
-        $("<td></td>").appendTo(tr).text(file.name);
+        var td = $("<td></td>").appendTo(tr);
+        $("<a />").appendTo(td).text(file.name).attr({
+            "href": "/get/blob?name=" + file.name,
+            "target": "_blank"
+        });
         $("<td></td>").appendTo(tr).text(fileSize(file.size));
         $("<td></td>").appendTo(tr).text(file.ts);
     });
@@ -91,11 +95,36 @@ function selected(e) {
     renderLocal();
 }
 
+function login() {
+    var username = $("#file-username").val();
+    var password = $("#file-password").val();
+    if (username && password) {
+        $.ajax({
+            type: "POST",
+            url: "/login/account",
+            contentType: "application/json",
+            data: JSON.stringify({
+                "username": username,
+                "password": password,
+            }),
+            success: function() {
+                $("#file-login").hide();
+                $("#file-interface").show();
+                refresh();
+            },
+            error: function(xhr, status, error) {
+                $("#file-status").text("Could not login, please verify your username/password or try again later.");
+            }
+        });
+    } else {
+        $("#file-status").text("Please provide a username and password to login.");
+    }
+}
+
 function refresh() {
-    var container = $("#file-container").val();
     $.ajax({
         type: "GET",
-        url: "/list?container=" + container,
+        url: "/list/blobs",
         success: function(entries) {
             filesServer = entries;
             renderServer();
@@ -106,7 +135,6 @@ function refresh() {
             $("#file-status").text("Could not get a list of files from the server.");
         }
     });
-
 }
 
 function upload() {
@@ -149,11 +177,10 @@ function upload() {
         var uploadBlock = function() {
             var kb = (cursor - startWithSequence) * blockSize / 1000;
             var sec = (new Date().getTime() - started.getTime()) / 1000;
-            var container = $("#file-container").val();
             var overwrite = $("#file-overwrite").is(":checked");
             $.ajax({
                 type: "POST",
-                url: "/upload?container=" + container + "&name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite,
+                url: "/upload?name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite,
                 data: reader.result.match(/,(.*)$/)[1],
                 success: function(response) {
                     if (response) {
@@ -240,7 +267,8 @@ $(document).ready(function() {
         // check for a login
         if (document.cookie.indexOf("accessToken") > -1) {
 
-            // show the file interface
+            // change the interface
+            $("#file-login").hide();
             $("#file-interface").show();
 
             // refresh (to show server files)

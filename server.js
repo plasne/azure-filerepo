@@ -11,6 +11,7 @@ var crypto = require("crypto");
 var qs = require("querystring");
 var promise = require("bluebird");
 var express = require("express");
+var bodyParser = require("body-parser");
 var cookieParser = require("cookie-parser");
 var bodyParser = require("body-parser");
 var wasb = require("azure-storage");
@@ -21,6 +22,7 @@ var AuthenticationContext = require("adal-node").AuthenticationContext;
 var nJwt = require("njwt");
 
 var app = express();
+app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static("client"));
 
@@ -159,8 +161,10 @@ express.response.sendError = function(error) {
         case "auth":
             this.status(401).send({ code: 120, msg: "You are not properly authorized to view this page." });
             break;
+        case "accounts?":
+        case "account?":
         case "container?":
-        case "list?":
+        case "blobs?":
         case "exists?":
         case "write?":
             this.status(500).send({ code: 200, msg: "The file repository cannot be accessed right now, please try again later." });
@@ -171,6 +175,9 @@ express.response.sendError = function(error) {
         case "out-of-sync":
             this.status(500).send({ code: 400, msg: "The upload packets were not in the expected order. Please refresh your browser and select the file for upload again." });
             break;
+        case "account":
+            this.status(500).send({ code: 500, msg: "The account cannot be created - please ensure you have specified a valid, unique username." });
+            break;
         default:
             this.status(500).send({ code: 999, msg: "Unknown error." });
             break;
@@ -178,14 +185,16 @@ express.response.sendError = function(error) {
 }
 
 // a login with user consent (if the admin has already consented there is no additional consent required)
-app.get("/login", function(req, res) {
+app.get("/login/admin", function(req, res) {
     crypto.randomBytes(48, function(err, buf) {
     if (err) {
         console.log("login: couldn't generate the crypto token.");
         res.sendError("exception");
     } else {
         var token = buf.toString("base64").replace(/\//g, "_").replace(/\+/g, "-");
-        res.cookie("authstate", token);
+        res.cookie("authstate", token, {
+            maxAge: 10 * 60 * 1000 // 10 min
+        });
         var url = authority + "/oauth2/authorize?response_type=code&client_id=" + qs.escape(clientId) + "&redirect_uri=" + qs.escape(redirectUri) + "&state=" + qs.escape(token) + "&resource=" + qs.escape(resource);
         res.redirect(url);
     }
@@ -210,7 +219,7 @@ app.get("/token", function(req, res) {
             var claims = {
                 iss: "http://testauth.plasne.com",
                 sub: response.userId,
-                scope: "admin"
+                scope: "[admin]"
             };
 
             // build the JWT
@@ -221,7 +230,7 @@ app.get("/token", function(req, res) {
             res.cookie("accessToken", jwt.compact(), {
                 maxAge: 4 * 60 * 60 * 1000 // 4 hours
             });
-            res.redirect("/index.htm");
+            res.redirect("/admin.htm");
 
           } else {
               console.log("token: an authorization token could not be obtained - " + err);
@@ -233,30 +242,238 @@ app.get("/token", function(req, res) {
 
 });
 
-// get a list of objects in the server container
-app.get("/list", function(req, res) {
-    if (req.query.container) {
-        var service = wasb.createBlobService(storageAccount, storageKey);
+app.post("/login/account", function(req, res) {
+    if (req.body.username && req.body.password) {
+        var service = wasb.createTableService(storageAccount, storageKey);
+        var create = new promise(function(resolve, reject) {
+            try {
+                service.createTableIfNotExists("accounts", function(error, result, response) {
+                    if (error) {
+                        console.log("createTableIfNotExists: " + error);
+                        reject("account?");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("createTableIfNotExists: " + ex);
+                reject("account?");
+            }
+        });
         var list = new promise(function(resolve, reject) {
             try {
-                service.listBlobsSegmented(req.query.container, null, {
+                service.retrieveEntity("accounts", "customers", req.body.username, function(error, result, response) {
+                    if (error) {
+                        console.log("retrieveEntity: " + error);
+                        reject("account?");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("retrieveEntity: " + ex);
+                reject("account?");
+            }
+        });
+        promise.each([create, list], function(result) { }).then(function(result) {
+            var entry = result[1];
+
+            // build the claims
+            var claims = {
+                iss: "http://testauth.plasne.com",
+                sub: entry.RowKey._,
+                scope: entry.container._
+            };
+
+            // build the JWT
+            var jwt = nJwt.create(claims, jwtKey);
+            jwt.setExpiration(new Date().getTime() + (24 * 60 * 60 * 1000)); // 24 hours
+
+            // return the JWT
+            res.cookie("accessToken", jwt.compact(), {
+                maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            });
+            res.status(200).end();
+
+        }, function(error) {
+            res.sendError(error);
+        }).catch(function(ex) {
+            console.log("/list/accounts: " + ex);
+            res.sendError("exception");
+        });
+    }
+});
+
+// create an account
+app.post("/create/account", function(req, res) {
+    if (req.body.username && req.body.password && req.body.container) {
+        var service = wasb.createTableService(storageAccount, storageKey);
+        var create = new promise(function(resolve, reject) {
+            try {
+                service.createTableIfNotExists("accounts", function(error, result, response) {
+                    if (error) {
+                        console.log("createTableIfNotExists: " + error);
+                        reject("account?");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("createTableIfNotExists: " + ex);
+                reject("account?");
+            }
+        });
+        var insert = new promise(function(resolve, reject) {
+            try {
+                var gen = wasb.TableUtilities.entityGenerator;
+                var entity = {
+                    "PartitionKey": gen.String("customers"),
+                    "RowKey": gen.String(req.body.username),
+                    "password": gen.String(req.body.password),
+                    "container": gen.String(req.body.container)
+                };
+                service.insertEntity("accounts", entity, function(error, result, response) {
+                    if (error) {
+                        console.log("insertEntity: " + error);
+                        reject("account");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("insertEntity: " + ex);
+                reject("account");
+            }
+        });
+        promise.each([create, insert], function(result) { }).then(function(result) {
+            console.log(JSON.stringify(result));
+            res.status(200).send(result);
+        }, function(error) {
+            res.sendError(error);
+        }).catch(function(ex) {
+            console.log("/create/account: " + ex);
+            res.sendError("exception");
+        });
+    } else {
+        res.sendError("malformed");
+    }
+});
+
+// get a list of accounts
+app.get("/list/accounts", function(req, res) {
+    var service = wasb.createTableService(storageAccount, storageKey);
+    var create = new promise(function(resolve, reject) {
+        try {
+            service.createTableIfNotExists("accounts", function(error, result, response) {
+                if (error) {
+                    console.log("createTableIfNotExists: " + error);
+                    reject("accounts?");
+                } else {
+                    resolve(result);
+                }
+            });
+        } catch (ex) {
+            console.log("createTableIfNotExists: " + ex);
+            reject("accounts?");
+        }
+    });
+    var list = new promise(function(resolve, reject) {
+        try {
+            var query = new wasb.TableQuery().top(1000).where("PartitionKey eq ?", "customers");
+            service.queryEntities("accounts", query, null, function(error, result, response) {
+                if (error) {
+                    console.log("queryEntities: " + error);
+                    reject("accounts?");
+                } else {
+                    resolve(result);
+                }
+            });
+        } catch (ex) {
+            console.log("queryEntities: " + ex);
+            reject("accounts?");
+        }
+    });
+    promise.each([create, list], function(result) { }).then(function(result) {
+        var response = [];
+        result[1].entries.forEach(function(entry) {
+            response.push({
+                "username": entry.RowKey._,
+                "password": entry.password._,
+                "container": entry.container._
+            });
+        });
+        res.status(200).send(response);
+    }, function(error) {
+        res.sendError(error);
+    }).catch(function(ex) {
+        console.log("/list/accounts: " + ex);
+        res.sendError("exception");
+    });
+});
+
+function verifyToken(req) {
+    return new promise(function(resolve, reject) {
+        try {
+            if (req.cookies.accessToken) {
+                nJwt.verify(req.cookies.accessToken, jwtKey, function(error, verified) {
+                    if (!error) {
+                        resolve(verified);
+                    } else {
+                        console.log("verifyToken: The JWT was not verified successfully - " + error + ".");
+                        reject("auth");
+                    }
+                });
+            } else {
+                console.log("verifyToken: There was no cookie passed with the JWT for authentication.");
+                reject("auth");
+            }
+        } catch (ex) {
+            console.log("verifyToken: There was an exception raised on verification of the JWT - " + ex + ".");
+            reject("auth");
+        }
+    });
+}
+
+// get a list of blobs in the specified container
+app.get("/list/blobs", function(req, res) {
+    verifyToken(req).then(function(verified) {
+        var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
+        var service = wasb.createBlobService(storageAccount, storageKey);
+        var ensureContainer = new promise(function(resolve, reject) {
+            try {
+                service.createContainerIfNotExists(container, function(error, result, response) {
+                    if (error) {
+                        console.log("createContainerIfNotExists: " + error);
+                        reject("container?");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("createContainerIfNotExists: " + ex);
+                reject("container?");
+            }
+        });
+        var list = new promise(function(resolve, reject) {
+            try {
+                service.listBlobsSegmented(container, null, {
                     maxResults: 100
                 }, function(error, result, response) {
                     if (error) {
                         console.log("listBlobsSegmented: " + error);
-                        reject("list?");
+                        reject("blobs?");
                     } else {
                         resolve(result);
                     }
                 });
             } catch (ex) {
                 console.log("listBlobsSegmented: " + ex);
-                reject("list?");
+                reject("blobs?");
             }
         });
-        list.then(function(result) {
+        promise.each([ensureContainer, list], function(result) { }).then(function(result) {
             var response = [];
-            result.entries.forEach(function(entry) {
+            result[1].entries.forEach(function(entry) {
                 response.push({
                     "name": entry.name,
                     "size": entry.contentLength,
@@ -267,7 +484,46 @@ app.get("/list", function(req, res) {
         }, function(error) {
             res.sendError(error);
         }).catch(function(ex) {
-            console.log(ex);
+            console.log("/list/blobs: " + ex);
+            res.sendError("exception");
+        });
+    }, function(error) {
+        res.sendError(error);
+    }).catch(function(ex) {
+        console.log("/list/blobs: " + ex);
+        res.sendError("exception");
+    });
+});
+
+// get a list of blobs in the specified container
+app.get("/get/blob", function(req, res) {
+    if (req.query.name) {
+        verifyToken(req).then(function(verified) {
+            var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
+            var service = wasb.createBlobService(storageAccount, storageKey);
+
+            // create a shared access policy
+            var startDate = new Date();
+            var expiryDate = new Date(startDate);
+            startDate.setMinutes(startDate.getMinutes() - 5); // 5 min ago
+            expiryDate.setMinutes(startDate.getMinutes() + 240); // 4 hours from now
+            var sharedAccessPolicy = {
+                AccessPolicy: {
+                    Permissions: wasb.BlobUtilities.SharedAccessPermissions.READ,
+                    Start: startDate,
+                    Expiry: expiryDate
+                }
+            };
+
+            // redirect to the URL
+            var token = service.generateSharedAccessSignature(container, req.query.name, sharedAccessPolicy);
+            var sasUrl = service.getUrl(container, req.query.name, token);
+            res.redirect(sasUrl);
+
+        }, function(error) {
+            res.sendError(error);
+        }).catch(function(ex) {
+            console.log("/get/blob: " + ex);
             res.sendError("exception");
         });
     } else {
@@ -277,98 +533,106 @@ app.get("/list", function(req, res) {
 
 // upload all or part of a file
 app.post("/upload", function(req, res) {
-    if (req.query.container && req.query.name && req.query.cmd && req.query.seq) {
-        var overwrite = (req.query.overwrite == "true");
-        var file = pending.find(req.query.container, req.query.name);
-        var decoder = base64.decode();
-        switch(req.query.cmd) {
+    if (req.query.name && req.query.cmd && req.query.seq) {
+        verifyToken(req).then(function(verified) {
+            var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
+            var overwrite = (req.query.overwrite == "true");
+            var file = pending.find(container, req.query.name);
+            var decoder = base64.decode();
+            switch(req.query.cmd) {
 
-            case "complete":
-                if (!file) {
-                    // upload the file
-                    pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
-                        req.pipe(decoder).pipe(file.writer);
-                        pending.remove(req.query.container, req.query.name);
-                        res.status(200).end();
-                    }, function(error) {
-                        res.sendError(error);
-                    }).catch(function(ex) {
-                        console.log(ex);
-                        res.sendError("exception");
-                    });
-                } else {
-                    // replace the in-progress upload (implicit replace)
-                    file.writer.end();
-                    pending.remove(req.query.container, req.query.name);
-                    pending.add(req.query.container, req.query.name, true).then(function(file) {
-                        req.pipe(decoder).pipe(file.writer);
-                        pending.remove(req.query.container, req.query.name);
-                        res.status(200).end();
-                    }, function(error) {
-                        pending.remove(req.query.container, req.query.name);
-                        res.sendError(error);
-                    }).catch(function(ex) {
-                        console.log(ex);
-                        res.sendError("exception");
-                    });
-                }
-                break;
+                case "complete":
+                    if (!file) {
+                        // upload the file
+                        pending.add(container, req.query.name, overwrite).then(function(file) {
+                            req.pipe(decoder).pipe(file.writer);
+                            pending.remove(req.query.container, req.query.name);
+                            res.status(200).end();
+                        }, function(error) {
+                            res.sendError(error);
+                        }).catch(function(ex) {
+                            console.log("complete: " + ex);
+                            res.sendError("exception");
+                        });
+                    } else {
+                        // replace the in-progress upload (implicit replace)
+                        file.writer.end();
+                        pending.remove(container, req.query.name);
+                        pending.add(container, req.query.name, true).then(function(file) {
+                            req.pipe(decoder).pipe(file.writer);
+                            pending.remove(container, req.query.name);
+                            res.status(200).end();
+                        }, function(error) {
+                            pending.remove(container, req.query.name);
+                            res.sendError(error);
+                        }).catch(function(ex) {
+                            console.log("complete: " + ex);
+                            res.sendError("exception");
+                        });
+                    }
+                    break;
 
-            case "begin":
-                if (!file) {
-                    // upload the file
-                    pending.add(req.query.container, req.query.name, overwrite).then(function(file) {
+                case "begin":
+                    if (!file) {
+                        // upload the file
+                        pending.add(container, req.query.name, overwrite).then(function(file) {
+                            req.pipe(decoder).pipe(file.writer, { end: false });
+                            file.sequence++;
+                            res.status(200).end();
+                        }, function(error) {
+                            pending.remove(container, req.query.name);
+                            res.sendError(error);
+                        }).catch(function(ex) {
+                            console.log("begin: " + ex);
+                            res.sendError("exception");
+                        });
+                    } else {
+                        // resume the in-progress upload (implicit continue)
+                        res.status(200).send({
+                            "status": "resume",
+                            "sequence": file.sequence 
+                        });
+                    }
+                    break;
+
+                case "continue":
+                    if (file.sequence == req.query.seq) {
                         req.pipe(decoder).pipe(file.writer, { end: false });
                         file.sequence++;
                         res.status(200).end();
-                    }, function(error) {
-                        pending.remove(req.query.container, req.query.name);
-                        res.sendError(error);
-                    }).catch(function(ex) {
-                        console.log(ex);
-                        res.sendError("exception");
-                    });
-                } else {
-                    // resume the in-progress upload (implicit continue)
-                    res.status(200).send({
-                        "status": "resume",
-                        "sequence": file.sequence 
-                    });
-                }
-                break;
+                    } else if (req.query.seq < file.sequence) {
+                        // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
+                        res.status(200).end();
+                    } else {
+                        res.sendError("out-of-sync");
+                    }
+                    break;
 
-            case "continue":
-                if (file.sequence == req.query.seq) {
-                    req.pipe(decoder).pipe(file.writer, { end: false });
-                    file.sequence++;
-                    res.status(200).end();
-                } else if (req.query.seq < file.sequence) {
-                    // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
-                    res.status(200).end();
-                } else {
-                    res.sendError("out-of-sync");
-                }
-                break;
+                case "end":
+                    if (file.sequence == req.query.seq) {
+                        req.pipe(decoder).pipe(file.writer);
+                        pending.remove(container, req.query.name);
+                        res.status(200).end();
+                    } else if (req.query.seq < file.sequence) {
+                        // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
+                        res.status(200).end();
+                    } else {
+                        res.sendError("out-of-sync");
+                    }
+                    break;
 
-            case "end":
-                if (file.sequence == req.query.seq) {
-                    req.pipe(decoder).pipe(file.writer);
-                    pending.remove(req.query.container, req.query.name);
+                case "abort":
+                    pending.remove(container, req.query.name);
                     res.status(200).end();
-                } else if (req.query.seq < file.sequence) {
-                    // the request sequence can be lower if it didn't get confirmation of a commit, let it catch up
-                    res.status(200).end();
-                } else {
-                    res.sendError("out-of-sync");
-                }
-                break;
+                    break;
 
-            case "abort":
-                pending.remove(req.query.container, req.query.name);
-                res.status(200).end();
-                break;
-
-        }
+            }
+        }, function(error) {
+            res.sendError(error);
+        }).catch(function(ex) {
+            console.log("/upload: " + ex);
+            res.sendError("exception");
+        });
     } else {
         res.sendError("malformed");
     }
