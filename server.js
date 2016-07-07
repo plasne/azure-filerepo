@@ -379,7 +379,22 @@ app.post("/create/account", function(req, res) {
                 reject("account");
             }
         });
-        promise.each([verifyAdmin(req), create, insert], function(result) { }).then(function(result) {
+        var ensureContainer = new promise(function(resolve, reject) {
+            try {
+                service.createContainerIfNotExists(container, function(error, result, response) {
+                    if (error) {
+                        console.log("createContainerIfNotExists: " + error);
+                        reject("container?");
+                    } else {
+                        resolve(result);
+                    }
+                });
+            } catch (ex) {
+                console.log("createContainerIfNotExists: " + ex);
+                reject("container?");
+            }
+        });
+        promise.each([verifyAdmin(req), create, insert, ensureContainer], function(result) { }).then(function(result) {
             res.status(200).send(req.body);
         }, function(error) {
             res.sendError(error);
@@ -456,11 +471,7 @@ app.get("/list/blobs", function(req, res) {
                         console.log("createContainerIfNotExists: " + error);
                         reject("container?");
                     } else {
-                        setTimeout(function() {
-                            resolve(result);
-                        }, 2000);
-                        //console.log("success(" + JSON.stringify(result) + ")");
-                        //resolve(result);
+                        resolve(result);
                     }
                 });
             } catch (ex) {
