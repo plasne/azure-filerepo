@@ -26,6 +26,7 @@ function create() {
 }
 
 function refresh() {
+    $("#file-account-list").html("");
     $.ajax({
         type: "GET",
         url: "/list/accounts",
