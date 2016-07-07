@@ -184,6 +184,40 @@ express.response.sendError = function(error) {
     }
 }
 
+function verifyToken(req) {
+    return new promise(function(resolve, reject) {
+        try {
+            if (req.cookies.accessToken) {
+                nJwt.verify(req.cookies.accessToken, jwtKey, function(error, verified) {
+                    if (!error) {
+                        resolve(verified);
+                    } else {
+                        console.log("verifyToken: The JWT was not verified successfully - " + error + ".");
+                        reject("auth");
+                    }
+                });
+            } else {
+                console.log("verifyToken: There was no cookie passed with the JWT for authentication.");
+                reject("auth");
+            }
+        } catch (ex) {
+            console.log("verifyToken: There was an exception raised on verification of the JWT - " + ex + ".");
+            reject("auth");
+        }
+    });
+}
+
+function verifyAdmin(req) {
+    return verifyToken(req).then(function(verified) {
+        if (verified.body.scope == "[admin]") {
+            return promise.resolve(verified);
+        } else {
+            console.log("verifyAdmin: The JWT was valid, but the user was not an admin.");
+            return promise.reject("auth");
+        }
+    });
+}
+
 // a login with user consent (if the admin has already consented there is no additional consent required)
 app.get("/login/admin", function(req, res) {
     crypto.randomBytes(48, function(err, buf) {
@@ -345,7 +379,7 @@ app.post("/create/account", function(req, res) {
                 reject("account");
             }
         });
-        promise.each([create, insert], function(result) { }).then(function(result) {
+        promise.each([verifyAdmin(req), create, insert], function(result) { }).then(function(result) {
             console.log(JSON.stringify(result));
             res.status(200).send(result);
         }, function(error) {
@@ -393,7 +427,7 @@ app.get("/list/accounts", function(req, res) {
             reject("accounts?");
         }
     });
-    promise.each([create, list], function(result) { }).then(function(result) {
+    promise.each([verifyAdmin(req), create, list], function(result) { }).then(function(result) {
         var response = [];
         result[1].entries.forEach(function(entry) {
             response.push({
@@ -410,29 +444,6 @@ app.get("/list/accounts", function(req, res) {
         res.sendError("exception");
     });
 });
-
-function verifyToken(req) {
-    return new promise(function(resolve, reject) {
-        try {
-            if (req.cookies.accessToken) {
-                nJwt.verify(req.cookies.accessToken, jwtKey, function(error, verified) {
-                    if (!error) {
-                        resolve(verified);
-                    } else {
-                        console.log("verifyToken: The JWT was not verified successfully - " + error + ".");
-                        reject("auth");
-                    }
-                });
-            } else {
-                console.log("verifyToken: There was no cookie passed with the JWT for authentication.");
-                reject("auth");
-            }
-        } catch (ex) {
-            console.log("verifyToken: There was an exception raised on verification of the JWT - " + ex + ".");
-            reject("auth");
-        }
-    });
-}
 
 // get a list of blobs in the specified container
 app.get("/list/blobs", function(req, res) {

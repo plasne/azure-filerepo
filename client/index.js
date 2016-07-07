@@ -141,7 +141,7 @@ function login() {
 }
 
 function refresh() {
-    var add = (container) ? "&container=" + container : "";
+    var add = (container) ? "?container=" + container : "";
     $.ajax({
         type: "GET",
         url: "/list/blobs" + add,
