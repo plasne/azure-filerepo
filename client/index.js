@@ -74,8 +74,9 @@ function renderServer() {
     $(filesServer).each(function(i, file) {
         var tr = $("<tr></tr>").appendTo(table);
         var td = $("<td></td>").appendTo(tr);
+        var add = (container) ? "&container=" + container : "";
         $("<a />").appendTo(td).text(file.name).attr({
-            "href": "/get/blob?name=" + file.name,
+            "href": "/get/blob?name=" + file.name + add,
             "target": "_blank"
         });
         $("<td></td>").appendTo(tr).text(fileSize(file.size));
