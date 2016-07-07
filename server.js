@@ -381,7 +381,7 @@ app.post("/create/account", function(req, res) {
         });
         var ensureContainer = new promise(function(resolve, reject) {
             try {
-                service.createContainerIfNotExists(container, function(error, result, response) {
+                service.createContainerIfNotExists(req.body.container, function(error, result, response) {
                     if (error) {
                         console.log("createContainerIfNotExists: " + error);
                         reject("container?");
