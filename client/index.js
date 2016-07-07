@@ -95,6 +95,11 @@ function selected(e) {
     renderLocal();
 }
 
+function logout() {
+    $.cookie("accessToken", null, { path: "/", expires: -1 });
+    window.location.href = "/index.htm";
+}
+
 function login() {
     var username = $("#file-username").val();
     var password = $("#file-password").val();

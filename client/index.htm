@@ -4,6 +4,7 @@
 			  src="https://code.jquery.com/jquery-2.2.4.min.js"
 			  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
 			  crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
         <script type="text/javascript" src="index.js"></script>
         <link rel="stylesheet" type="text/css" href="index.css" />
     </head>
@@ -36,6 +37,9 @@
             </div>
         </div>
         <div id="file-interface" style="display : none">
+            <div style="margin-left : 400px">
+                <a href="#" onclick="logout();">logout</a>
+            </div>
             <div>
                 <div id="file-drop" class="file-drop no-hover" ondragenter="dragged(event);" ondragover="return false;" ondragleave="undragged(event);" ondrop="dropped(event);">
                     Drop files here

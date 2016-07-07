@@ -46,6 +46,11 @@ function refresh() {
     });
 }
 
+function logout() {
+    $.cookie("accessToken", null, { path: "/", expires: -1 });
+    window.location.href = "/index.htm";
+}
+
 $(document).ready(function() {
     
     // ensure the browser is HTML5
