@@ -3,6 +3,20 @@ var blockSize = 200000; // in bytes
 var retryFor = 30 * 60 * 1000 // in ms, current is 30 min
 var filesLocal = [];
 var filesServer = [];
+var container;
+
+function getQuerystring(key, default_)
+{
+    if (default_==null) default_="";
+    key = key.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
+    var regex = new RegExp("[\\?&]"+key+"=([^&#]*)");
+    var qs = regex.exec(window.location.href);
+    if (qs == null) {
+        return default_;
+    } else {
+        return qs[1];
+    }
+}
 
 function dragged(e) {
     $("#file-drop").removeClass("no-hover").addClass("hover");
@@ -127,9 +141,10 @@ function login() {
 }
 
 function refresh() {
+    var add = (container) ? "&container=" + container : "";
     $.ajax({
         type: "GET",
-        url: "/list/blobs",
+        url: "/list/blobs" + add,
         success: function(entries) {
             filesServer = entries;
             renderServer();
@@ -183,9 +198,10 @@ function upload() {
             var kb = (cursor - startWithSequence) * blockSize / 1000;
             var sec = (new Date().getTime() - started.getTime()) / 1000;
             var overwrite = $("#file-overwrite").is(":checked");
+            var add = (container) ? "&container=" + container : "";
             $.ajax({
                 type: "POST",
-                url: "/upload?name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite,
+                url: "/upload?name=" + file.name + "&cmd=" + cmd + "&seq=" + (cursor - 1) +  "&overwrite=" + overwrite + add,
                 data: reader.result.match(/,(.*)$/)[1],
                 success: function(response) {
                     if (response) {
@@ -271,6 +287,9 @@ $(document).ready(function() {
 
         // check for a login
         if (document.cookie.indexOf("accessToken") > -1) {
+
+            // read the container if this is an admin window
+            container = getQuerystring("container", null);
 
             // change the interface
             $("#file-login").hide();
