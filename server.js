@@ -1,9 +1,6 @@
 
 // notes:
 // implement trimming the pending entries after inactivity
-// implement download
-// implement delete
-// implement some kind of username/password/container
 // implement logging
 
 var config = require("config");
@@ -178,6 +175,12 @@ express.response.sendError = function(error) {
         case "account":
             this.status(500).send({ code: 500, msg: "The account cannot be created - please ensure you have specified a valid, unique username." });
             break;
+        case "delete-blob":
+            this.status(500).send({ code: 500, msg: "The blob could not be deleted, please try again later." });
+            break;
+        case "delete-account":
+            this.status(500).send({ code: 510, msg: "The account could not be deleted, please try again later." });
+            break;
         default:
             this.status(500).send({ code: 999, msg: "Unknown error." });
             break;
@@ -339,7 +342,7 @@ app.post("/login/account", function(req, res) {
 });
 
 // create an account
-app.post("/create/account", function(req, res) {
+app.post("/account", function(req, res) {
     if (req.body.username && req.body.password && req.body.container) {
         var service = wasb.createTableService(storageAccount, storageKey);
         var create = new promise(function(resolve, reject) {
@@ -409,7 +412,7 @@ app.post("/create/account", function(req, res) {
 });
 
 // get a list of accounts
-app.get("/list/accounts", function(req, res) {
+app.get("/accounts", function(req, res) {
     var service = wasb.createTableService(storageAccount, storageKey);
     var create = new promise(function(resolve, reject) {
         try {
@@ -460,12 +463,52 @@ app.get("/list/accounts", function(req, res) {
     });
 });
 
+// delete an account
+app.delete("/account", function(req, res) {
+    if (req.query.username) {
+        verifyAdmin(req).then(function(verified) {
+            var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
+            var service = wasb.createTableService(storageAccount, storageKey);
+            return new promise(function(resolve, reject) {
+                try {
+                    var gen = wasb.TableUtilities.entityGenerator;
+                    var entity = {
+                        "PartitionKey": gen.String("customers"),
+                        "RowKey": gen.String(req.query.username)
+                    };
+                    service.deleteEntity("accounts", entity, function(error, result, response) {
+                        if (error) {
+                            console.log("deleteEntity: " + error);
+                            reject("delete-account");
+                        } else {
+                            resolve(result);
+                        }
+                    });
+                } catch (ex) {
+                    console.log("deleteEntity: " + ex);
+                    reject("delete-account");
+                }
+            })
+        }).then(function() {
+            res.status(200).end();
+        }, function(error) {
+            res.sendError(error);
+        }).catch(function(ex) {
+            console.log("/account (delete): " + ex);
+            res.sendError("exception");
+        });
+    } else {
+        res.sendError("malformed");
+    }
+});
+
 // get a list of blobs in the specified container
-app.get("/list/blobs", function(req, res) {
+app.get("/blobs", function(req, res) {
+    var service = wasb.createBlobService(storageAccount, storageKey);
+    var container;
     verifyToken(req).then(function(verified) {
-        var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
-        var service = wasb.createBlobService(storageAccount, storageKey);
-        var ensureContainer = new promise(function(resolve, reject) {
+        container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
+        return new promise(function(resolve, reject) {
             try {
                 service.createContainerIfNotExists(container, function(error, result, response) {
                     if (error) {
@@ -480,7 +523,8 @@ app.get("/list/blobs", function(req, res) {
                 reject("container?");
             }
         });
-        var list = new promise(function(resolve, reject) {
+    }).then(function() {
+        return new promise(function(resolve, reject) {
             try {
                 service.listBlobsSegmented(container, null, {
                     maxResults: 100
@@ -497,32 +541,26 @@ app.get("/list/blobs", function(req, res) {
                 reject("blobs?");
             }
         });
-        promise.each([ensureContainer, list], function(result) { }).then(function(result) {
-            var response = [];
-            result[1].entries.forEach(function(entry) {
-                response.push({
-                    "name": entry.name,
-                    "size": entry.contentLength,
-                    "ts": entry.lastModified
-                });
+    }).then(function(result) {
+        var response = [];
+        result.entries.forEach(function(entry) {
+            response.push({
+                "name": entry.name,
+                "size": entry.contentLength,
+                "ts": entry.lastModified
             });
-            res.status(200).send(response);
-        }, function(error) {
-            res.sendError(error);
-        }).catch(function(ex) {
-            console.log("/list/blobs: " + ex);
-            res.sendError("exception");
         });
+        res.status(200).send(response);
     }, function(error) {
         res.sendError(error);
     }).catch(function(ex) {
-        console.log("/get/blob: " + ex);
+        console.log("/blobs: " + ex);
         res.sendError("exception");
     });
 });
 
 // get a list of blobs in the specified container
-app.get("/get/blob", function(req, res) {
+app.get("/blob", function(req, res) {
     if (req.query.name) {
         verifyToken(req).then(function(verified) {
             var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
@@ -549,7 +587,41 @@ app.get("/get/blob", function(req, res) {
         }, function(error) {
             res.sendError(error);
         }).catch(function(ex) {
-            console.log("/get/blob: " + ex);
+            console.log("/blob: " + ex);
+            res.sendError("exception");
+        });
+    } else {
+        res.sendError("malformed");
+    }
+});
+
+// delete a blob
+app.delete("/blob", function(req, res) {
+    if (req.query.name) {
+        verifyToken(req).then(function(verified) {
+            var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
+            var service = wasb.createBlobService(storageAccount, storageKey);
+            return new promise(function(resolve, reject) {
+                try {
+                    service.deleteBlob(container, req.query.name, function(error, result, response) {
+                        if (error) {
+                            console.log("deleteBlob: " + error);
+                            reject("delete-blob");
+                        } else {
+                            resolve(result);
+                        }
+                    });
+                } catch (ex) {
+                    console.log("deleteBlob: " + ex);
+                    reject("delete-blob");
+                }
+            })
+        }).then(function() {
+            res.status(200).end();
+        }, function(error) {
+            res.sendError(error);
+        }).catch(function(ex) {
+            console.log("/blob (delete): " + ex);
             res.sendError("exception");
         });
     } else {

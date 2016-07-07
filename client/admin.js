@@ -6,7 +6,7 @@ function create() {
     if (username && password && container) {
         $.ajax({
             type: "POST",
-            url: "/create/account",
+            url: "/account",
             contentType: "application/json",
             data: JSON.stringify({
                 "username": username,
@@ -29,16 +29,32 @@ function refresh() {
     $("#file-account-list").html("");
     $.ajax({
         type: "GET",
-        url: "/list/accounts",
+        url: "/accounts",
         success: function(accounts) {
             $(accounts).each(function(i, account) {
                 var tr = $("<tr />").appendTo("#file-account-list");
                 $("<td />").appendTo(tr).text(account.username);
                 $("<td />").appendTo(tr).text(account.password);
-                var td = $("<td />").appendTo(tr);
-                $("<a />").appendTo(td).text(account.container).attr({
+                var container = $("<td />").appendTo(tr);
+                $("<a />").appendTo(container).text(account.container).attr({
                     "href": "/index.htm?container=" + account.container,
                     "target": "container." + account.container
+                });
+                var actions = $("<td />").appendTo(tr);
+                $("<a>delete</a>").appendTo(actions).attr({
+                    "href": "#"
+                }).click(function() {
+                    $.ajax({
+                        type: "DELETE",
+                        url: "/account?username=" + account.username,
+                        success: function() {
+                            $("#file-status").text(account.username + " deleted successfully.");
+                            refresh();
+                        },
+                        error: function(xhr, status, error) {
+                            $("#file-status").text("Could not delete, please try again later.");
+                        }
+                    });
                 });
             });
         },

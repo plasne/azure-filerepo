@@ -73,14 +73,30 @@ function renderServer() {
     });
     $(filesServer).each(function(i, file) {
         var tr = $("<tr></tr>").appendTo(table);
-        var td = $("<td></td>").appendTo(tr);
+        var filename = $("<td></td>").appendTo(tr);
         var add = (container) ? "&container=" + container : "";
-        $("<a />").appendTo(td).text(file.name).attr({
-            "href": "/get/blob?name=" + file.name + add,
+        $("<a />").appendTo(filename).text(file.name).attr({
+            "href": "/blob?name=" + file.name + add,
             "target": "_blank"
         });
         $("<td></td>").appendTo(tr).text(fileSize(file.size));
         $("<td></td>").appendTo(tr).text(file.ts);
+        var actions = $("<td></td>").appendTo(tr);
+        $("<a>delete</a>").appendTo(actions).attr({
+            "href": "#"
+        }).click(function() {
+            $.ajax({
+                type: "DELETE",
+                url: "/blob?name=" + file.name + add,
+                success: function() {
+                    $("#file-status").text(file.name + " deleted successfully.");
+                    refresh();
+                },
+                error: function(xhr, status, error) {
+                    $("#file-status").text("Could not delete, please try again later.");
+                }
+            });
+        });
     });
 
 }
@@ -145,7 +161,7 @@ function refresh() {
     var add = (container) ? "?container=" + container : "";
     $.ajax({
         type: "GET",
-        url: "/list/blobs" + add,
+        url: "/blobs" + add,
         success: function(entries) {
             filesServer = entries;
             renderServer();
