@@ -381,7 +381,8 @@ app.post("/create/account", function(req, res) {
         });
         var ensureContainer = new promise(function(resolve, reject) {
             try {
-                service.createContainerIfNotExists(req.body.container, function(error, result, response) {
+                var blobservice = wasb.createBlobService(storageAccount, storageKey);
+                blobservice.createContainerIfNotExists(req.body.container, function(error, result, response) {
                     if (error) {
                         console.log("createContainerIfNotExists: " + error);
                         reject("container?");
