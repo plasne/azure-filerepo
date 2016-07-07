@@ -456,8 +456,11 @@ app.get("/list/blobs", function(req, res) {
                         console.log("createContainerIfNotExists: " + error);
                         reject("container?");
                     } else {
-                        console.log("success(" + JSON.stringify(result) + ")");
-                        resolve(result);
+                        setTimeout(function() {
+                            resolve(result);
+                        }, 2000);
+                        //console.log("success(" + JSON.stringify(result) + ")");
+                        //resolve(result);
                     }
                 });
             } catch (ex) {
