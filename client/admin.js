@@ -14,6 +14,7 @@ function create() {
                 "container": container
             }),
             success: function(response) {
+                refresh();
             },
             error: function(xhr, status, error) {
                 $("#file-status").text("Could not create the account.");

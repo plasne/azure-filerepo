@@ -380,8 +380,7 @@ app.post("/create/account", function(req, res) {
             }
         });
         promise.each([verifyAdmin(req), create, insert], function(result) { }).then(function(result) {
-            console.log(JSON.stringify(result));
-            res.status(200).send(result);
+            res.status(200).send(req.body);
         }, function(error) {
             res.sendError(error);
         }).catch(function(ex) {
@@ -429,7 +428,7 @@ app.get("/list/accounts", function(req, res) {
     });
     promise.each([verifyAdmin(req), create, list], function(result) { }).then(function(result) {
         var response = [];
-        result[1].entries.forEach(function(entry) {
+        result[2].entries.forEach(function(entry) {
             response.push({
                 "username": entry.RowKey._,
                 "password": entry.password._,
@@ -447,57 +446,50 @@ app.get("/list/accounts", function(req, res) {
 
 // get a list of blobs in the specified container
 app.get("/list/blobs", function(req, res) {
-    verifyToken(req).then(function(verified) {
-        var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
-        var service = wasb.createBlobService(storageAccount, storageKey);
-        var ensureContainer = new promise(function(resolve, reject) {
-            try {
-                service.createContainerIfNotExists(container, function(error, result, response) {
-                    if (error) {
-                        console.log("createContainerIfNotExists: " + error);
-                        reject("container?");
-                    } else {
-                        resolve(result);
-                    }
-                });
-            } catch (ex) {
-                console.log("createContainerIfNotExists: " + ex);
-                reject("container?");
-            }
-        });
-        var list = new promise(function(resolve, reject) {
-            try {
-                service.listBlobsSegmented(container, null, {
-                    maxResults: 100
-                }, function(error, result, response) {
-                    if (error) {
-                        console.log("listBlobsSegmented: " + error);
-                        reject("blobs?");
-                    } else {
-                        resolve(result);
-                    }
-                });
-            } catch (ex) {
-                console.log("listBlobsSegmented: " + ex);
-                reject("blobs?");
-            }
-        });
-        promise.each([ensureContainer, list], function(result) { }).then(function(result) {
-            var response = [];
-            result[1].entries.forEach(function(entry) {
-                response.push({
-                    "name": entry.name,
-                    "size": entry.contentLength,
-                    "ts": entry.lastModified
-                });
+    var container = (verified.body.scope == "[admin]") ? req.query.container : verified.body.scope;
+    var service = wasb.createBlobService(storageAccount, storageKey);
+    var ensureContainer = new promise(function(resolve, reject) {
+        try {
+            service.createContainerIfNotExists(container, function(error, result, response) {
+                if (error) {
+                    console.log("createContainerIfNotExists: " + error);
+                    reject("container?");
+                } else {
+                    resolve(result);
+                }
             });
-            res.status(200).send(response);
-        }, function(error) {
-            res.sendError(error);
-        }).catch(function(ex) {
-            console.log("/list/blobs: " + ex);
-            res.sendError("exception");
+        } catch (ex) {
+            console.log("createContainerIfNotExists: " + ex);
+            reject("container?");
+        }
+    });
+    var list = new promise(function(resolve, reject) {
+        try {
+            service.listBlobsSegmented(container, null, {
+                maxResults: 100
+            }, function(error, result, response) {
+                if (error) {
+                    console.log("listBlobsSegmented: " + error);
+                    reject("blobs?");
+                } else {
+                    resolve(result);
+                }
+            });
+        } catch (ex) {
+            console.log("listBlobsSegmented: " + ex);
+            reject("blobs?");
+        }
+    });
+    promise.each([verifyToken(req), ensureContainer, list], function(result) { }).then(function(result) {
+        var response = [];
+        result[2].entries.forEach(function(entry) {
+            response.push({
+                "name": entry.name,
+                "size": entry.contentLength,
+                "ts": entry.lastModified
+            });
         });
+        res.status(200).send(response);
     }, function(error) {
         res.sendError(error);
     }).catch(function(ex) {
