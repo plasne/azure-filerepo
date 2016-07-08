@@ -3,6 +3,7 @@
 // implement trimming the pending entries after inactivity
 // implement logging
 
+// references
 var config = require("config");
 var crypto = require("crypto");
 var qs = require("querystring");
@@ -18,6 +19,7 @@ var stream = require("stream");
 var AuthenticationContext = require("adal-node").AuthenticationContext;
 var nJwt = require("njwt");
 
+// express config
 var app = express();
 app.use(bodyParser.json());
 app.use(cookieParser());
